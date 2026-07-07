@@ -1,6 +1,10 @@
 {
-  "games": [],
-  "products": [],
+  "games": [
+    {"id": 1, "name": "Free Fire", "code": "ff", "image_url": ""}
+  ],
+  "products": [
+    {"id": 1, "game_code": "ff", "name": "25 Diamonds", "price": 0.3, "provider_package": "FF_25_DIAMOND", "image_url": ""}
+  ],
   "banners": [],
   "transactions": [],
   "site_settings": {
@@ -15,5 +19,5 @@
     "footer_desc": "",
     "copyright": "© 2026 PVH TOPUP. All rights reserved."
   },
-  "next_ids": {"games": 1, "products": 1, "banners": 1}
+  "next_ids": {"games": 2, "products": 2, "banners": 1}
 }
