@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: pvh-topup
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: CAMRAPID_API_KEY
+        sync: false
+      - key: SIGNING_SECRET
+        value: sokii-secret-key-change-this
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: ADMIN_PANEL_TOKEN
+        value: 1jcVF54vpA2591jnBMQNsvlmIL6AgkwAdmVPr1gr7H0
+      - key: TOPUP_PROVIDER_TOKEN
+        sync: false
+      - key: TOPUP_PROVIDER_BASE_URL
+        value: https://cambotopup.com/api/reseller/
+      - key: TOPUP_ORDER_PATH
+        value: order
+      - key: TOPUP_STATUS_PATH
+        value: status
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
+    disk:
+      name: pvh-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

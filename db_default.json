@@ -1,0 +1,19 @@
+{
+  "games": [],
+  "products": [],
+  "banners": [],
+  "transactions": [],
+  "site_settings": {
+    "id": 1,
+    "site_name": "PVH TOPUP",
+    "footer_name": "PVH TOPUP",
+    "logo_url": "https://i.ibb.co/pjJfcVXB/IMG-20260210-234141-481.jpg",
+    "admin_telegram_link": "https://t.me/MrxDiamondTopUp12",
+    "admin_telegram_name": "@M_RX_Support",
+    "facebook_link": "https://www.facebook.com/mrxtopupdm",
+    "tiktok_link": "https://www.tiktok.com/@m.rx_official_vtb",
+    "footer_desc": "",
+    "copyright": "© 2026 PVH TOPUP. All rights reserved."
+  },
+  "next_ids": {"games": 1, "products": 1, "banners": 1}
+}
