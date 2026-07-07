@@ -232,9 +232,8 @@ async function loadGames() {
   try {
     const { games } = await api("admin-games");
     gamesCache = games;
-    if (!games.length) { wrap.innerHTML = `<p class="empty">មិនទាន់មានហ្គេមទេ</p>`; return; }
     wrap.innerHTML = `<table><thead><tr><th>ID</th><th>Name</th><th>Code</th><th>Image URL</th><th></th></tr></thead>
-      <tbody>${games.map(g => `
+      <tbody>${!games.length ? `<tr class="empty-row"><td colspan="5" class="empty">មិនទាន់មានហ្គេមទេ — ចុច "+ បន្ថែមហ្គេមថ្មី" ខាងលើ</td></tr>` : games.map(g => `
         <tr data-id="${g.id}">
           <td class="mono">${g.id}</td>
           <td><input value="${esc(g.name || "")}" data-f="name"></td>
@@ -253,6 +252,8 @@ function addGameRow() {
   const wrap = document.getElementById("gamesTableWrap");
   const table = wrap.querySelector("tbody");
   if (!table) return renderGames();
+  const emptyRow = table.querySelector(".empty-row");
+  if (emptyRow) emptyRow.remove();
   const tr = document.createElement("tr");
   tr.className = "new-row";
   tr.innerHTML = `<td class="mono">new</td>
@@ -311,9 +312,8 @@ async function loadProducts() {
   wrap.innerHTML = `<p class="empty">កំពុងផ្ទុក...</p>`;
   try {
     const { products } = await api(`admin-products${gameCode ? `?game_code=${encodeURIComponent(gameCode)}` : ""}`);
-    if (!products.length) { wrap.innerHTML = `<p class="empty">មិនទាន់មាន product ទេ</p>`; return; }
     wrap.innerHTML = `<table><thead><tr><th>ID</th><th>Game code</th><th>Name</th><th>Price ($)</th><th>Provider package</th><th></th></tr></thead>
-      <tbody>${products.map(p => `
+      <tbody>${!products.length ? `<tr class="empty-row"><td colspan="6" class="empty">មិនទាន់មាន product ទេ — ចុច "+ បន្ថែម Product ថ្មី" ខាងលើ</td></tr>` : products.map(p => `
         <tr data-id="${p.id}">
           <td class="mono">${p.id}</td>
           <td><input value="${esc(p.game_code || "")}" data-f="game_code"></td>
@@ -333,6 +333,8 @@ function addProductRow() {
   const wrap = document.getElementById("productsTableWrap");
   const table = wrap.querySelector("tbody");
   if (!table) return renderProducts();
+  const emptyRow = table.querySelector(".empty-row");
+  if (emptyRow) emptyRow.remove();
   const tr = document.createElement("tr");
   tr.className = "new-row";
   tr.innerHTML = `<td class="mono">new</td>
@@ -376,9 +378,8 @@ async function loadBanners() {
   wrap.innerHTML = `<p class="empty">កំពុងផ្ទុក...</p>`;
   try {
     const { banners } = await api("admin-banners");
-    if (!banners.length) { wrap.innerHTML = `<p class="empty">មិនទាន់មាន banner ទេ</p>`; return; }
     wrap.innerHTML = `<table><thead><tr><th>ID</th><th>Image URL</th><th>Link</th><th></th></tr></thead>
-      <tbody>${banners.map(b => `
+      <tbody>${!banners.length ? `<tr class="empty-row"><td colspan="4" class="empty">មិនទាន់មាន banner ទេ — ចុច "+ បន្ថែម Banner ថ្មី" ខាងលើ</td></tr>` : banners.map(b => `
         <tr data-id="${b.id}">
           <td class="mono">${b.id}</td>
           <td><input value="${esc(b.image_url || "")}" data-f="image_url"></td>
@@ -396,6 +397,8 @@ function addBannerRow() {
   const wrap = document.getElementById("bannersTableWrap");
   const table = wrap.querySelector("tbody");
   if (!table) return renderBanners();
+  const emptyRow = table.querySelector(".empty-row");
+  if (emptyRow) emptyRow.remove();
   const tr = document.createElement("tr");
   tr.className = "new-row";
   tr.innerHTML = `<td class="mono">new</td>
