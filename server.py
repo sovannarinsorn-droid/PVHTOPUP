@@ -42,10 +42,51 @@ import requests
 from flask import Flask, request, jsonify, send_from_directory, g
 
 try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    _HAS_CRYPTO = True
+except ImportError:
+    _HAS_CRYPTO = False
+
+try:
     from dotenv import load_dotenv
     load_dotenv()  # reads .env in this folder and loads it into os.environ
 except ImportError:
     pass  # falls back to real environment variables if python-dotenv isn't installed
+
+# ---------------------------------------------------------------------------
+# CryptoJS-compatible AES encryption
+# The frontend bundle calls CryptoJS.AES.decrypt(payloadString, PASSPHRASE) on
+# several endpoints (get-home-data, get-topup-data, get-stats). CryptoJS's
+# passphrase-based AES uses OpenSSL's "Salted__" format: MD5-based
+# EVP_BytesToKey key/iv derivation, AES-256-CBC, PKCS7 padding, base64 output.
+# This must be applied server-side or the frontend silently fails to decrypt
+# and the games/products/notifications never render.
+# ---------------------------------------------------------------------------
+FRONTEND_PAYLOAD_KEY = os.environ.get("FRONTEND_PAYLOAD_KEY", "6Imhmam1ob2xienZ5a3l3c2hzbG9kIiwic")
+
+
+def _evp_bytes_to_key(password: bytes, salt: bytes, key_len=32, iv_len=16):
+    dtot = b""
+    d = b""
+    while len(dtot) < key_len + iv_len:
+        d = hashlib.md5(d + password + salt).digest()
+        dtot += d
+    return dtot[:key_len], dtot[key_len:key_len + iv_len]
+
+
+def encrypt_payload(obj) -> str:
+    """Encrypt a JSON-serializable object the way CryptoJS.AES.decrypt(str, passphrase) expects."""
+    if not _HAS_CRYPTO:
+        raise RuntimeError("The 'cryptography' package is required (pip install cryptography --break-system-packages)")
+    plaintext = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+    salt = secrets.token_bytes(8)
+    key, iv = _evp_bytes_to_key(FRONTEND_PAYLOAD_KEY.encode("utf-8"), salt)
+    pad_len = 16 - (len(plaintext) % 16)
+    plaintext += bytes([pad_len]) * pad_len
+    encryptor = Cipher(algorithms.AES(key), modes.CBC(iv)).encryptor()
+    ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+    import base64
+    return base64.b64encode(b"Salted__" + salt + ciphertext).decode("utf-8")
 
 # ---------------------------------------------------------------------------
 # Config (edit these, or set as real environment variables before running)
@@ -213,7 +254,7 @@ def serve_index():
 @app.route("/admin")
 @app.route("/admin/")
 def serve_admin():
-    return send_from_directory(STATIC_DIR, "admin.html")
+    return send_from_directory(os.path.join(STATIC_DIR, "admin"), "index.html")
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +509,8 @@ def get_home_data():
     if request.method == "OPTIONS":
         return json_response({})
     data = db_read()
-    return json_response({"success": True, "payload": {"games": data["games"], "banners": data["banners"]}})
+    payload = encrypt_payload({"games": data["games"], "banners": data["banners"]})
+    return json_response({"success": True, "payload": payload})
 
 
 @app.route("/api/get-topup-data", methods=["GET", "OPTIONS"])
@@ -479,8 +521,12 @@ def get_topup_data():
     if not game_code:
         return json_response({"success": False, "error": "Missing id"}, 400)
     data = db_read()
+    game = next((g for g in data["games"] if g.get("code") == game_code), None)
+    if game is None:
+        return json_response({"success": False, "error": "Game not found"}, 404)
     products = [p for p in data["products"] if p.get("game_code") == game_code]
-    return json_response({"success": True, "products": products})
+    payload = encrypt_payload({"game": game, "products": products})
+    return json_response({"success": True, "payload": payload})
 
 
 @app.route("/api/check-user", methods=["POST", "OPTIONS"])
@@ -505,7 +551,8 @@ def get_stats():
     paid = [t for t in data["transactions"] if t.get("status") == "paid"]
     paid_sorted = sorted(paid, key=lambda t: t.get("created_at") or "", reverse=True)[:10]
     slim = [{"user_id": t["user_id"], "game_code": t["game_code"], "amount": t["amount"], "created_at": t["created_at"]} for t in paid_sorted]
-    return json_response({"success": True, "type": stat_type, "data": slim})
+    payload = encrypt_payload(slim)
+    return json_response({"success": True, "type": stat_type, "payload": payload})
 
 
 @app.route("/api/get-site-settings", methods=["GET", "OPTIONS"])
@@ -530,7 +577,8 @@ def get_site_settings():
 
 
 # ---------------------------------------------------------------------------
-# Admin API (all require x-ad
+# Admin API (all require x-admin-token header == ADMIN_PANEL_TOKEN)
+# ---------------------------------------------------------------------------
 @app.route("/api/admin-settings", methods=["GET", "PUT", "OPTIONS"])
 def admin_settings():
     if request.method == "OPTIONS":
@@ -703,4 +751,3 @@ if __name__ == "__main__":
     print(f"  Site : http://localhost:{port}/")
     print(f"  Admin: http://localhost:{port}/admin  (token = ADMIN_PANEL_TOKEN)")
     app.run(host="0.0.0.0", port=port, debug=False)
-      
