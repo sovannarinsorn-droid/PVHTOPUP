@@ -2,7 +2,7 @@ services:
   - type: web
     name: pvh-topup
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server_v3:app --bind 0.0.0.0:$PORT
     envVars:
@@ -30,4 +30,3 @@ services:
       name: pvh-data
       mountPath: /opt/render/project/src/data
       sizeGB: 1
-      
