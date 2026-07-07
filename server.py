@@ -213,7 +213,7 @@ def serve_index():
 @app.route("/admin")
 @app.route("/admin/")
 def serve_admin():
-    return send_from_directory(os.path.join(STATIC_DIR, "admin"), "index.html")
+    return send_from_directory(STATIC_DIR, "admin.html")
 
 
 # ---------------------------------------------------------------------------
@@ -530,8 +530,7 @@ def get_site_settings():
 
 
 # ---------------------------------------------------------------------------
-# Admin API (all require x-admin-token header == ADMIN_PANEL_TOKEN)
-# ---------------------------------------------------------------------------
+# Admin API (all require x-ad
 @app.route("/api/admin-settings", methods=["GET", "PUT", "OPTIONS"])
 def admin_settings():
     if request.method == "OPTIONS":
@@ -704,3 +703,4 @@ if __name__ == "__main__":
     print(f"  Site : http://localhost:{port}/")
     print(f"  Admin: http://localhost:{port}/admin  (token = ADMIN_PANEL_TOKEN)")
     app.run(host="0.0.0.0", port=port, debug=False)
+      
