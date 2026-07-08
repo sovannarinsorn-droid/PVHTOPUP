@@ -369,13 +369,20 @@
       "section": "normal"
     }
   ],
-  "banners": [],
+  "banners": [
+    {
+      "id": 1,
+      "image_url": "https://iili.io/Clx0q1s.jpg",
+      "link": "",
+      "type": "main_slider"
+    }
+  ],
   "transactions": [],
   "site_settings": {
     "id": 1,
     "site_name": "PVH TOPUP",
     "footer_name": "PVH TOPUP",
-    "logo_url": "https://i.ibb.co/pjJfcVXB/IMG-20260210-234141-481.jpg",
+    "logo_url": "https://i.ibb.co/r2gdVbBc/file-00000000dc1c72089db41251aab70c9c.png",
     "admin_telegram_link": "https://t.me/MrxDiamondTopUp12",
     "admin_telegram_name": "@M_RX_Support",
     "facebook_link": "https://www.facebook.com/mrxtopupdm",
@@ -386,6 +393,6 @@
   "next_ids": {
     "games": 5,
     "products": 39,
-    "banners": 1
+    "banners": 2
   }
     }
