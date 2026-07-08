@@ -142,6 +142,7 @@ def _seed_from_defaults(data):
             changed = True
 
     existing_products = {(p.get("game_code"), p.get("name")) for p in data.get("products", [])}
+    products_by_key = {(p.get("game_code"), p.get("name")): p for p in data.get("products", [])}
     for p in defaults.get("products", []):
         key = (p.get("game_code"), p.get("name"))
         if key not in existing_products:
@@ -150,6 +151,17 @@ def _seed_from_defaults(data):
             data["products"].append(new_row)
             existing_products.add(key)
             changed = True
+        else:
+            # Backfill fields that are missing on the already-existing row (e.g. a
+            # 'section' field added to db_default.json after the product was first
+            # seeded). Never overwrites a value the admin panel already set.
+            existing_row = products_by_key[key]
+            for field, value in p.items():
+                if field in ("id",):
+                    continue
+                if existing_row.get(field) in (None, ""):
+                    existing_row[field] = value
+                    changed = True
 
     existing_banner_urls = {b.get("image_url") for b in data.get("banners", [])}
     for b in defaults.get("banners", []):
