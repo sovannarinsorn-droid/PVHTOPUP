@@ -1019,7 +1019,7 @@ def admin_games():
     # auto ID-check + auto top-up). Get it from GET /topups on the FazerCards API.
     return _admin_crud(
         "games",
-        ["name", "code", "image_url", "fazercards_category_id"],
+        ["name", "code", "image_url", "fazercards_category_id", "has_server_id"],
         required_on_create=["name", "code"],
     )
 

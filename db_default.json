@@ -1,9 +1,9 @@
 {
   "games": [
-    {"id": 1, "name": "Free Fire", "code": "ff", "image_url": ""},
-    {"id": 2, "name": "Mobile Legends", "code": "ml", "image_url": ""},
-    {"id": 3, "name": "PUBG Mobile", "code": "pubg", "image_url": ""},
-    {"id": 4, "name": "Roblox", "code": "rbx", "image_url": ""}
+    {"id": 1, "name": "Free Fire", "code": "ff", "image_url": "", "has_server_id": false},
+    {"id": 2, "name": "Mobile Legends", "code": "ml", "image_url": "", "has_server_id": true},
+    {"id": 3, "name": "PUBG Mobile", "code": "pubg", "image_url": "", "has_server_id": false},
+    {"id": 4, "name": "Roblox", "code": "rbx", "image_url": "", "has_server_id": false}
   ],
   "products": [
     {"id": 1, "game_code": "ff", "name": "25 Diamonds", "price": 0.3, "provider_package": "FF_25_DIAMOND", "image_url": ""},
