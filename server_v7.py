@@ -44,7 +44,7 @@ Endpoints (same paths/behavior as the original netlify/functions/*.js):
   GET/PATCH           /api/admin-transactions  (admin)
 
 Serves:
-  GET /       -> index_v1.html (single-file frontend)
+  GET /       -> index_v2.html (single-file frontend)
   GET /admin  -> admin_v3.html
 
 Run:
