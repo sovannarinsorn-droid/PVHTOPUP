@@ -322,7 +322,7 @@ def _fazercards_headers(idempotency_key=None):
     return headers
 
 
-# category_id -> list of required field keys, e.g. ["player_id"] or ["player_id", "zone_id"].
+# category_id (order/offers space, e.g. "cat_pubgm_1") -> list of required field keys.
 # Cached in memory per process since a category's required fields never change at runtime.
 _fazercards_fields_cache = {}
 
@@ -352,11 +352,73 @@ def fazercards_build_fields(category_id, user_id, zone_id=None):
     return {k: v for k, v in zip(keys, values)}
 
 
-def fazercards_validate_id(category_id, user_id, zone_id=None):
-    """Auto CHECK ID: POST /topups/validate-id -> {ok, valid, player_name, region?}"""
+# ---------------------------------------------------------------------------
+# IMPORTANT: GET /topups/validate-id uses a COMPLETELY DIFFERENT category_id
+# namespace than GET /topups / /topups/offers. e.g. the order catalog might call
+# PUBG Mobile "cat_pubgm_1", while the validate-id catalog calls the very same
+# game "pubg_mobile". Passing the order-catalog category_id into
+# POST /topups/validate-id is why every ID check used to come back "invalid" —
+# it was querying a category_id that doesn't exist in that catalog at all.
+# So validate-id needs its OWN lookup, cached separately, keyed by game name
+# (matched case-insensitively against our own game's "name" field), and it
+# carries its own "fields" list directly — no need to call /topups/offers for it.
+# ---------------------------------------------------------------------------
+
+_fazercards_validate_catalog_cache = None  # {normalized_name: {"category_id":..., "fields":[keys]}}
+
+
+def _fazercards_load_validate_catalog():
+    global _fazercards_validate_catalog_cache
+    if _fazercards_validate_catalog_cache is not None:
+        return _fazercards_validate_catalog_cache
+    res = requests.get(
+        f"{FAZERCARDS_BASE_URL}/topups/validate-id",
+        headers=_fazercards_headers(),
+        timeout=15,
+    )
+    data = res.json()
+    catalog = {}
+    for item in data.get("items", []):
+        name = (item.get("name") or "").strip().lower()
+        keys = [f["key"] for f in item.get("fields", []) if f.get("key")] or ["player_id"]
+        if name:
+            catalog[name] = {"category_id": item.get("category_id"), "fields": keys}
+    _fazercards_validate_catalog_cache = catalog
+    return catalog
+
+
+def fazercards_resolve_validate_category(game_name, fallback_category_id=None):
+    """Looks up the validate-id-specific category_id + fields for a game by name.
+    Falls back to fallback_category_id (the order-catalog id) only if no name match
+    is found, so games we haven't matched by name yet don't hard-fail — though that
+    fallback will likely still return invalid, same as before, until the name lines up."""
+    catalog = _fazercards_load_validate_catalog()
+    key = (game_name or "").strip().lower()
+    match = catalog.get(key)
+    if match:
+        return match["category_id"], match["fields"]
+    # Loose fallback: try substring match (e.g. our "Free Fire" vs their "Free Fire MAX")
+    for name, entry in catalog.items():
+        if key and (key in name or name in key):
+            return entry["category_id"], entry["fields"]
+    return fallback_category_id, None
+
+
+def fazercards_validate_id(game_name, user_id, zone_id=None, fallback_category_id=None):
+    """Auto CHECK ID: POST /topups/validate-id -> {ok, valid, player_name, region?}
+    Resolves the correct validate-id category_id by game name first (see note above),
+    since it is NOT the same category_id used for placing orders."""
     if not FAZERCARDS_API_KEY:
         raise FazerCardsError("FAZERCARDS_API_KEY is not set")
-    fields = fazercards_build_fields(category_id, user_id, zone_id)
+    category_id, keys = fazercards_resolve_validate_category(game_name, fallback_category_id)
+    if not category_id:
+        raise FazerCardsError(f"No FazerCards validate-id category found for game '{game_name}'")
+    if keys:
+        values = [v for v in (user_id, zone_id) if v not in (None, "")]
+        fields = {k: v for k, v in zip(keys, values)}
+    else:
+        # Fell back to the order-catalog category_id — best effort via /topups/offers fields.
+        fields = fazercards_build_fields(category_id, user_id, zone_id)
     res = requests.post(
         f"{FAZERCARDS_BASE_URL}/topups/validate-id",
         json={"category_id": category_id, "fields": fields},
@@ -771,14 +833,17 @@ def check_user():
     data = db_read()
     game = find_game(data, game_code)
     fc_category = (game or {}).get("fazercards_category_id")
+    game_name = (game or {}).get("name")
 
-    if not fc_category or not FAZERCARDS_API_KEY:
-        # No FazerCards mapping configured for this game yet — don't block checkout,
-        # just skip the auto-check (same as before).
+    if not FAZERCARDS_API_KEY:
+        # No FazerCards key configured yet — don't block checkout, just skip the auto-check.
         return json_response({"success": True, "name": None})
 
     try:
-        result = fazercards_validate_id(fc_category, user_id, zone_id)
+        # Pass the game's display NAME (not fc_category) — validate-id has its own
+        # category_id namespace, resolved by name inside fazercards_validate_id().
+        # fc_category is only passed as a last-resort fallback.
+        result = fazercards_validate_id(game_name, user_id, zone_id, fallback_category_id=fc_category)
     except FazerCardsError as e:
         print("validate-id failed:", e)
         return json_response({"success": True, "name": None})
