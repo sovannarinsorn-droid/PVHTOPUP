@@ -1,8 +1,31 @@
 """
 PVH TOPUP — Python (Flask) backend
-Replaces the original Netlify Functions (which needed Supabase) with a
-single self-contained server that stores data in a local db.json file,
-matching the same style as your other bots (JSON storage, no external DB).
+
+Self-contained server that stores data in a local db.json file (JSON storage,
+no external DB — matches the style of your other bots).
+
+What changed in this version
+-----------------------------
+Auto top-up is now wired to FazerCards (https://api.fzr.cards/api/v2) instead of
+a generic placeholder provider:
+
+  - Auto CHECK ID   -> POST /topups/validate-id   (used by /api/check-user)
+  - Auto PAYMENT    -> CamRapidPay KHQR            (unchanged: create-payment / check-payment)
+  - Auto TOP-UP     -> POST /topups/order          (placed automatically the moment
+                                                      CamRapidPay confirms payment)
+  - Delivery status -> GET  /orders/:orderId        (polled by /api/check-topup-status)
+
+To enable this per game:
+  1. In the admin panel (or via PUT /api/admin-games), set `fazercards_category_id`
+     on the game to the FazerCards topup category (e.g. "cat_ff_1", "cat_mlbb_1").
+     Find this value from GET https://api.fzr.cards/api/v2/topups (X-API-Key header).
+  2. On each product, set `provider_package` to the matching FazerCards `offer_id`
+     from GET /topups/offers?category_id=<that category>.
+  3. Set the FAZERCARDS_API_KEY environment variable (from the reseller hub -> Profile -> API).
+
+If a game has no `fazercards_category_id` configured, or FAZERCARDS_API_KEY is unset,
+top-ups for that game simply fall back to "manual" delivery (an admin fulfils it by hand) —
+nothing breaks, it just doesn't auto-deliver.
 
 Endpoints (same paths/behavior as the original netlify/functions/*.js):
   POST /api/create-payment
@@ -10,36 +33,37 @@ Endpoints (same paths/behavior as the original netlify/functions/*.js):
   POST /api/expire-payment
   GET  /api/get-home-data
   GET  /api/get-topup-data?id=<game_code>
-  POST /api/check-user
+  POST /api/check-user                 <- now does a real auto ID-check via FazerCards
   GET  /api/get-stats?type=notifications
   POST /api/check-topup-status
-  GET  /api/get-site-settings                (public)
-  GET/PUT   /api/admin-settings              (admin, header x-admin-token)
-  GET/POST/PUT/DELETE /api/admin-games       (admin)
-  GET/POST/PUT/DELETE /api/admin-products    (admin)
-  GET/POST/PUT/DELETE /api/admin-banners     (admin)
-  GET/PATCH /api/admin-transactions          (admin)
+  GET  /api/get-site-settings (public)
+  GET/PUT             /api/admin-settings      (admin, header x-admin-token)
+  GET/POST/PUT/DELETE /api/admin-games         (admin)
+  GET/POST/PUT/DELETE /api/admin-products      (admin)
+  GET/POST/PUT/DELETE /api/admin-banners       (admin)
+  GET/PATCH           /api/admin-transactions  (admin)
 
 Serves:
-  GET /        -> index.html   (single-file frontend)
-  GET /admin   -> admin/index.html
+  GET /       -> index_v1.html (single-file frontend)
+  GET /admin  -> admin_v3.html
 
 Run:
-  pip install flask requests python-dotenv --break-system-packages
-  python server.py
+  pip install flask requests python-dotenv cryptography --break-system-packages
+  python server_v5.py
 """
 
 import os
 import json
 import time
 import hmac
+import base64
 import hashlib
 import secrets
 import threading
 from datetime import datetime, timezone
 
 import requests
-from flask import Flask, request, jsonify, send_from_directory, g
+from flask import Flask, request, jsonify, send_from_directory
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -53,8 +77,10 @@ try:
 except ImportError:
     pass  # falls back to real environment variables if python-dotenv isn't installed
 
+
 # ---------------------------------------------------------------------------
 # CryptoJS-compatible AES encryption
+#
 # The frontend bundle calls CryptoJS.AES.decrypt(payloadString, PASSPHRASE) on
 # several endpoints (get-home-data, get-topup-data, get-stats). CryptoJS's
 # passphrase-based AES uses OpenSSL's "Salted__" format: MD5-based
@@ -62,7 +88,10 @@ except ImportError:
 # This must be applied server-side or the frontend silently fails to decrypt
 # and the games/products/notifications never render.
 # ---------------------------------------------------------------------------
-FRONTEND_PAYLOAD_KEY = os.environ.get("FRONTEND_PAYLOAD_KEY", "6Imhmam1ob2xienZ5a3l3c2hzbG9kIiwic")
+
+FRONTEND_PAYLOAD_KEY = os.environ.get(
+    "FRONTEND_PAYLOAD_KEY", "6Imhmam1ob2xienZ5a3l3c2hzbG9kIiwic"
+)
 
 
 def _evp_bytes_to_key(password: bytes, salt: bytes, key_len=32, iv_len=16):
@@ -77,7 +106,9 @@ def _evp_bytes_to_key(password: bytes, salt: bytes, key_len=32, iv_len=16):
 def encrypt_payload(obj) -> str:
     """Encrypt a JSON-serializable object the way CryptoJS.AES.decrypt(str, passphrase) expects."""
     if not _HAS_CRYPTO:
-        raise RuntimeError("The 'cryptography' package is required (pip install cryptography --break-system-packages)")
+        raise RuntimeError(
+            "The 'cryptography' package is required (pip install cryptography --break-system-packages)"
+        )
     plaintext = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     salt = secrets.token_bytes(8)
     key, iv = _evp_bytes_to_key(FRONTEND_PAYLOAD_KEY.encode("utf-8"), salt)
@@ -85,32 +116,32 @@ def encrypt_payload(obj) -> str:
     plaintext += bytes([pad_len]) * pad_len
     encryptor = Cipher(algorithms.AES(key), modes.CBC(iv)).encryptor()
     ciphertext = encryptor.update(plaintext) + encryptor.finalize()
-    import base64
     return base64.b64encode(b"Salted__" + salt + ciphertext).decode("utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Config (edit these, or set as real environment variables before running)
 # ---------------------------------------------------------------------------
+
 CAMRAPID_API_KEY = os.environ.get("CAMRAPID_API_KEY", "")
 SIGNING_SECRET = os.environ.get("SIGNING_SECRET", "sokii-secret-key-change-this")  # MUST match "Ct" in the frontend bundle
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "")
 ADMIN_PANEL_TOKEN = os.environ.get("ADMIN_PANEL_TOKEN", "change-this-to-a-long-random-string")
 
-TOPUP_PROVIDER_TOKEN = os.environ.get("TOPUP_PROVIDER_TOKEN", "")
-TOPUP_PROVIDER_BASE_URL = os.environ.get("TOPUP_PROVIDER_BASE_URL", "https://cambotopup.com/api/reseller/")
-TOPUP_ORDER_PATH = os.environ.get("TOPUP_ORDER_PATH", "order")
-TOPUP_STATUS_PATH = os.environ.get("TOPUP_STATUS_PATH", "status")
-
 CAMRAPID_CREATE_URL = "https://pay.camrapidpay.com/api/v1/khqr/create-payments"
 CAMRAPID_CHECK_URL = "https://pay.camrapidpay.com/check-transaction-api"
+
+# FazerCards reseller API (auto ID-check + auto top-up)
+FAZERCARDS_API_KEY = os.environ.get("FAZERCARDS_API_KEY", "")
+FAZERCARDS_BASE_URL = os.environ.get("FAZERCARDS_BASE_URL", "https://api.fzr.cards/api/v2")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)  # point this at a Render persistent disk mount in production
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, "db.json")
 DEFAULT_DB_PATH = os.path.join(BASE_DIR, "db_default.json")
-STATIC_DIR = BASE_DIR  # index.html + admin/index.html live alongside this file
+STATIC_DIR = BASE_DIR  # index_v1.html + admin_v3.html live alongside this file
 
 app = Flask(__name__)
 _db_lock = threading.Lock()
@@ -119,6 +150,7 @@ _db_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 # Tiny JSON "database" (mirrors your usual db.json pattern)
 # ---------------------------------------------------------------------------
+
 def _seed_from_defaults(data):
     """Merge any games/products/banners from db_default.json into an EXISTING db.json
     that are missing (matched by 'code' for games/products, 'image_url' for banners).
@@ -132,6 +164,7 @@ def _seed_from_defaults(data):
         return False
 
     changed = False
+
     existing_game_codes = {g.get("code") for g in data.get("games", [])}
     for g in defaults.get("games", []):
         if g.get("code") not in existing_game_codes:
@@ -142,7 +175,6 @@ def _seed_from_defaults(data):
             changed = True
 
     existing_products = {(p.get("game_code"), p.get("name")) for p in data.get("products", [])}
-    products_by_key = {(p.get("game_code"), p.get("name")): p for p in data.get("products", [])}
     for p in defaults.get("products", []):
         key = (p.get("game_code"), p.get("name"))
         if key not in existing_products:
@@ -151,17 +183,6 @@ def _seed_from_defaults(data):
             data["products"].append(new_row)
             existing_products.add(key)
             changed = True
-        else:
-            # Backfill fields that are missing on the already-existing row (e.g. a
-            # 'section' field added to db_default.json after the product was first
-            # seeded). Never overwrites a value the admin panel already set.
-            existing_row = products_by_key[key]
-            for field, value in p.items():
-                if field in ("id",):
-                    continue
-                if existing_row.get(field) in (None, ""):
-                    existing_row[field] = value
-                    changed = True
 
     existing_banner_urls = {b.get("image_url") for b in data.get("banners", [])}
     for b in defaults.get("banners", []):
@@ -199,7 +220,7 @@ def db_read():
 
 
 def db_write(mutate_fn):
-    """mutate_fn(data) -> data; runs under lock, persists, returns result of mutate_fn"""
+    """mutate_fn(data) -> result; runs under lock, persists, returns result of mutate_fn"""
     with _db_lock:
         data = _load_db()
         result = mutate_fn(data)
@@ -220,6 +241,7 @@ def now_iso():
 # ---------------------------------------------------------------------------
 # Helpers (mirror _utils.js)
 # ---------------------------------------------------------------------------
+
 def json_response(payload, status=200):
     resp = jsonify(payload)
     resp.status_code = status
@@ -236,7 +258,6 @@ def verify_signature(user_id, amount, timestamp, signature):
         return False
     if age > 5 * 60 * 1000 or age < -60 * 1000:
         return False
-
     payload = f"{user_id}{amount}{timestamp}"
     expected = hmac.new(SIGNING_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, str(signature))
@@ -255,32 +276,15 @@ def notify_admin(text):
         print("Telegram notify failed:", e)
 
 
-def create_topup_order(user_id, server_id, package_code, reference):
-    if not TOPUP_PROVIDER_TOKEN:
-        raise RuntimeError("TOPUP_PROVIDER_TOKEN is not set")
-    res = requests.post(
-        f"{TOPUP_PROVIDER_BASE_URL}{TOPUP_ORDER_PATH}",
-        json={
-            "token": TOPUP_PROVIDER_TOKEN,
-            "user_id": user_id,
-            "server_id": server_id,
-            "package": package_code,
-            "reference": reference,
-        },
-        timeout=15,
-    )
-    return res.json()
+def find_by_id(rows, id_value, key="id"):
+    for row in rows:
+        if str(row.get(key)) == str(id_value):
+            return row
+    return None
 
 
-def check_topup_order(order_id):
-    if not TOPUP_PROVIDER_TOKEN:
-        raise RuntimeError("TOPUP_PROVIDER_TOKEN is not set")
-    res = requests.post(
-        f"{TOPUP_PROVIDER_BASE_URL}{TOPUP_STATUS_PATH}",
-        json={"token": TOPUP_PROVIDER_TOKEN, "order_id": order_id},
-        timeout=15,
-    )
-    return res.json()
+def find_game(data, game_code):
+    return next((g for g in data.get("games", []) if g.get("code") == game_code), None)
 
 
 def require_admin():
@@ -295,16 +299,106 @@ def require_admin():
     return None
 
 
-def find_by_id(rows, id_value, key="id"):
-    for row in rows:
-        if str(row.get(key)) == str(id_value):
-            return row
-    return None
+# ---------------------------------------------------------------------------
+# FazerCards integration (auto ID-check + auto top-up)
+# https://reseller.fazercards.com/en/docs
+# ---------------------------------------------------------------------------
+
+class FazerCardsError(Exception):
+    pass
+
+
+def _fazercards_headers(idempotency_key=None):
+    headers = {"X-API-Key": FAZERCARDS_API_KEY, "Content-Type": "application/json"}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    return headers
+
+
+# category_id -> list of required field keys, e.g. ["player_id"] or ["player_id", "zone_id"].
+# Cached in memory per process since a category's required fields never change at runtime.
+_fazercards_fields_cache = {}
+
+
+def fazercards_get_fields(category_id):
+    if category_id in _fazercards_fields_cache:
+        return _fazercards_fields_cache[category_id]
+    res = requests.get(
+        f"{FAZERCARDS_BASE_URL}/topups/offers",
+        params={"category_id": category_id},
+        headers=_fazercards_headers(),
+        timeout=15,
+    )
+    data = res.json()
+    fields = [f["key"] for f in data.get("fields", []) if f.get("key")]
+    if not fields:
+        fields = ["player_id"]  # safe default — every topup game has at least this
+    _fazercards_fields_cache[category_id] = fields
+    return fields
+
+
+def fazercards_build_fields(category_id, user_id, zone_id=None):
+    """Maps our (user_id, zone_id) onto whatever field keys FazerCards expects for this
+    category — e.g. Free Fire only needs player_id; MLBB-style games need a 2nd field too."""
+    keys = fazercards_get_fields(category_id)
+    values = [v for v in (user_id, zone_id) if v not in (None, "")]
+    return {k: v for k, v in zip(keys, values)}
+
+
+def fazercards_validate_id(category_id, user_id, zone_id=None):
+    """Auto CHECK ID: POST /topups/validate-id -> {ok, valid, player_name, region?}"""
+    if not FAZERCARDS_API_KEY:
+        raise FazerCardsError("FAZERCARDS_API_KEY is not set")
+    fields = fazercards_build_fields(category_id, user_id, zone_id)
+    res = requests.post(
+        f"{FAZERCARDS_BASE_URL}/topups/validate-id",
+        json={"category_id": category_id, "fields": fields},
+        headers=_fazercards_headers(),
+        timeout=15,
+    )
+    try:
+        return res.json()
+    except ValueError:
+        raise FazerCardsError(f"Bad response from FazerCards ({res.status_code})")
+
+
+def fazercards_place_order(category_id, offer_id, user_id, zone_id, idempotency_key):
+    """Auto TOP-UP: POST /topups/order -> {ok, order:{id, kind, status}}
+    idempotency_key should be your own order/trx id — retrying with the same key
+    returns the original order instead of charging or delivering twice."""
+    if not FAZERCARDS_API_KEY:
+        raise FazerCardsError("FAZERCARDS_API_KEY is not set")
+    fields = fazercards_build_fields(category_id, user_id, zone_id)
+    res = requests.post(
+        f"{FAZERCARDS_BASE_URL}/topups/order",
+        json={"category_id": category_id, "offer_id": offer_id, "fields": fields},
+        headers=_fazercards_headers(idempotency_key),
+        timeout=20,
+    )
+    try:
+        data = res.json()
+    except ValueError:
+        raise FazerCardsError(f"Bad response from FazerCards ({res.status_code})")
+    if not data.get("ok"):
+        raise FazerCardsError(data.get("error") or f"FazerCards order failed ({res.status_code})")
+    return data
+
+
+def fazercards_get_order(order_id):
+    """Poll delivery status: GET /orders/:orderId -> {ok, order:{id, kind, status, ...}}"""
+    if not FAZERCARDS_API_KEY:
+        raise FazerCardsError("FAZERCARDS_API_KEY is not set")
+    res = requests.get(f"{FAZERCARDS_BASE_URL}/orders/{order_id}", headers=_fazercards_headers(), timeout=15)
+    try:
+        return res.json()
+    except ValueError:
+        raise FazerCardsError(f"Bad response from FazerCards ({res.status_code})")
 
 
 # ---------------------------------------------------------------------------
 # Static file serving — single-file frontend + admin panel
 # ---------------------------------------------------------------------------
+
 @app.route("/")
 def serve_index():
     return send_from_directory(STATIC_DIR, "index_v1.html")
@@ -319,6 +413,7 @@ def serve_admin():
 # ---------------------------------------------------------------------------
 # Public API — payment flow
 # ---------------------------------------------------------------------------
+
 @app.route("/api/create-payment", methods=["POST", "OPTIONS"])
 def create_payment():
     if request.method == "OPTIONS":
@@ -330,13 +425,11 @@ def create_payment():
     zone_id = body.get("zoneId")
     game_code = body.get("gameCode")
     product_id = body.get("productId")
-
     signature = request.headers.get("x-signature")
     timestamp = request.headers.get("x-timestamp")
 
     if not amount or not user_id or not game_code or not product_id:
         return json_response({"success": False, "error": "Missing required fields"}, 400)
-
     if not verify_signature(user_id, amount, timestamp, signature):
         return json_response({"success": False, "error": "Invalid signature"}, 401)
 
@@ -384,7 +477,6 @@ def create_payment():
         })
 
     db_write(_mutate)
-
     return json_response({"success": True, "trx_id": trx_id, "qr_data": data.get("qr_code")})
 
 
@@ -402,7 +494,6 @@ def check_payment():
     order = find_by_id(data["transactions"], trx_id, key="trx_id")
     if not order:
         return json_response({"paid": False, "error": "Order not found"}, 404)
-
     if order["status"] == "paid":
         return json_response({"paid": True, "data": order})
     if order["status"] == "expired":
@@ -426,31 +517,37 @@ def check_payment():
     if not is_paid:
         return json_response({"paid": False})
 
-    # Mark paid + run auto top-up + notify admin
+    # Mark paid + run auto top-up (FazerCards) + notify admin
     def _mutate(d):
         o = find_by_id(d["transactions"], trx_id, key="trx_id")
         o["status"] = "paid"
         o["paid_at"] = now_iso()
 
         product = find_by_id(d["products"], o["product_id"])
+        game = find_game(d, o["game_code"])
+        fc_category = (game or {}).get("fazercards_category_id")
+        fc_offer_id = (product or {}).get("provider_package")  # FazerCards offer_id lives here
+
         delivery_status = "manual"
         delivery_error = None
         provider_order_id = None
 
-        if product and product.get("provider_package") and TOPUP_PROVIDER_TOKEN:
+        if fc_offer_id and fc_category and FAZERCARDS_API_KEY:
             try:
-                topup_res = create_topup_order(
-                    user_id=o["user_id"], server_id=o.get("zone_id"),
-                    package_code=product["provider_package"], reference=o["trx_id"],
+                # trx_id doubles as the Idempotency-Key: safe to retry this exact
+                # call later (e.g. from the admin dashboard) without double-delivering.
+                fc_res = fazercards_place_order(
+                    fc_category, fc_offer_id, o["user_id"], o.get("zone_id"), idempotency_key=o["trx_id"]
                 )
-                if str(topup_res.get("status", "")).lower() == "success":
-                    provider_order_id = topup_res.get("order_ID") or topup_res.get("order_id")
-                    delivery_status = "processing"
-                else:
-                    delivery_status = "failed"
-                    delivery_error = topup_res.get("message", "Unknown provider error")
+                fc_order = fc_res.get("order", {})
+                provider_order_id = fc_order.get("id")
+                fc_status = str(fc_order.get("status", "")).lower()
+                delivery_status = "delivered" if fc_status in ("completed", "delivered") else "processing"
+            except FazerCardsError as e:
+                delivery_status = "failed"
+                delivery_error = str(e)
             except Exception as e:  # noqa: BLE001
-                print("Auto top-up order failed:", e)
+                print("FazerCards order failed:", e)
                 delivery_status = "failed"
                 delivery_error = str(e)
 
@@ -462,11 +559,13 @@ def check_payment():
     order_after, delivery_status, provider_order_id, delivery_error = db_write(_mutate)
 
     if delivery_status == "processing":
-        delivery_line = f"⏳ Auto top-up submitted (provider order {provider_order_id}) — awaiting confirmation"
+        delivery_line = f"⏳ Auto top-up submitted to FazerCards (order {provider_order_id}) — awaiting confirmation"
+    elif delivery_status == "delivered":
+        delivery_line = f"💎 Auto top-up delivered instantly (order {provider_order_id})"
     elif delivery_status == "failed":
         delivery_line = f"⚠️ *AUTO TOP-UP FAILED*: {delivery_error}\n👉 Please deliver manually"
     else:
-        delivery_line = "👤 No auto top-up mapping for this product — please deliver manually"
+        delivery_line = "👤 No FazerCards mapping for this product — please deliver manually"
 
     zone_part = f" ({order_after['zone_id']})" if order_after.get("zone_id") else ""
     notify_admin(
@@ -488,6 +587,7 @@ def check_payment():
 def expire_payment():
     if request.method == "OPTIONS":
         return json_response({})
+
     body = request.get_json(silent=True) or {}
     trx_id = body.get("trx_id")
     if not trx_id:
@@ -506,6 +606,7 @@ def expire_payment():
 def check_topup_status():
     if request.method == "OPTIONS":
         return json_response({})
+
     body = request.get_json(silent=True) or {}
     trx_id = body.get("trx_id")
     if not trx_id:
@@ -523,20 +624,24 @@ def check_topup_status():
         })
 
     try:
-        result = check_topup_order(order["provider_order_id"])
+        result = fazercards_get_order(order["provider_order_id"])
+    except FazerCardsError as e:
+        print("check-topup-status error:", e)
+        return json_response({"error": "Server error"}, 500)
     except Exception as e:  # noqa: BLE001
         print("check-topup-status error:", e)
         return json_response({"error": "Server error"}, 500)
 
-    provider_status = str(result.get("topup_status", "")).upper()
+    fc_order = result.get("order", {})
+    provider_status = str(fc_order.get("status", "")).lower()
     new_status = order["delivery_status"]
     new_error = order.get("delivery_error")
 
-    if provider_status in ("SUCCESS", "COMPLETED", "DONE"):
+    if provider_status in ("completed", "delivered", "success"):
         new_status = "delivered"
-    elif provider_status in ("FAILED", "ERROR", "CANCELLED", "CANCELED"):
+    elif provider_status in ("failed", "error", "cancelled", "canceled"):
         new_status = "failed"
-        new_error = result.get("message", "Provider reported failure")
+        new_error = fc_order.get("error") or "FazerCards reported failure"
 
     if new_status != order["delivery_status"]:
         def _mutate(d):
@@ -563,6 +668,7 @@ def check_topup_status():
 # ---------------------------------------------------------------------------
 # Public API — page data
 # ---------------------------------------------------------------------------
+
 @app.route("/api/get-home-data", methods=["GET", "OPTIONS"])
 def get_home_data():
     if request.method == "OPTIONS":
@@ -580,15 +686,19 @@ def _norm_code(v):
 def get_topup_data():
     if request.method == "OPTIONS":
         return json_response({})
+
     game_code = request.args.get("id")
     if not game_code:
         return json_response({"success": False, "error": "Missing id"}, 400)
+
     data = db_read()
     target = _norm_code(game_code)
     game = next((g for g in data["games"] if _norm_code(g.get("code")) == target), None)
     if game is None:
         return json_response({"success": False, "error": "Game not found"}, 404)
+
     products = [p for p in data["products"] if _norm_code(p.get("game_code")) == target]
+
     # Defensive: coerce legacy string prices (saved before the numeric-price fix) so the
     # frontend's price.toFixed(2) doesn't crash and silently blank out the whole package list.
     for p in products:
@@ -597,21 +707,47 @@ def get_topup_data():
                 p["price"] = float(p["price"])
             except (TypeError, ValueError):
                 p["price"] = 0
+
     payload = encrypt_payload({"game": game, "products": products})
     return json_response({"success": True, "payload": payload})
 
 
 @app.route("/api/check-user", methods=["POST", "OPTIONS"])
 def check_user():
+    """Auto CHECK ID — validates the player ID against FazerCards before checkout
+    so the customer sees their in-game nickname and typos get caught early."""
     if request.method == "OPTIONS":
         return json_response({})
+
     body = request.get_json(silent=True) or {}
     game_code = body.get("gameCode")
     user_id = body.get("userId")
+    zone_id = body.get("zoneId")
     if not game_code or not user_id:
         return json_response({"success": False, "error": "Missing fields"}, 400)
-    # TODO: wire a real in-game-nickname-lookup provider here if you have one.
-    return json_response({"success": True, "name": None})
+
+    data = db_read()
+    game = find_game(data, game_code)
+    fc_category = (game or {}).get("fazercards_category_id")
+
+    if not fc_category or not FAZERCARDS_API_KEY:
+        # No FazerCards mapping configured for this game yet — don't block checkout,
+        # just skip the auto-check (same as before).
+        return json_response({"success": True, "name": None})
+
+    try:
+        result = fazercards_validate_id(fc_category, user_id, zone_id)
+    except FazerCardsError as e:
+        print("validate-id failed:", e)
+        return json_response({"success": True, "name": None})
+    except Exception as e:  # noqa: BLE001
+        print("validate-id failed:", e)
+        return json_response({"success": True, "name": None})
+
+    if result.get("ok") and result.get("valid"):
+        return json_response({"success": True, "name": result.get("player_name")})
+
+    return json_response({"success": False, "error": "Player ID not found", "name": None})
 
 
 @app.route("/api/get-stats", methods=["GET", "OPTIONS"])
@@ -622,7 +758,10 @@ def get_stats():
     data = db_read()
     paid = [t for t in data["transactions"] if t.get("status") == "paid"]
     paid_sorted = sorted(paid, key=lambda t: t.get("created_at") or "", reverse=True)[:10]
-    slim = [{"user_id": t["user_id"], "game_code": t["game_code"], "amount": t["amount"], "created_at": t["created_at"]} for t in paid_sorted]
+    slim = [
+        {"user_id": t["user_id"], "game_code": t["game_code"], "amount": t["amount"], "created_at": t["created_at"]}
+        for t in paid_sorted
+    ]
     payload = encrypt_payload(slim)
     return json_response({"success": True, "type": stat_type, "payload": payload})
 
@@ -651,6 +790,7 @@ def get_site_settings():
 # ---------------------------------------------------------------------------
 # Admin API (all require x-admin-token header == ADMIN_PANEL_TOKEN)
 # ---------------------------------------------------------------------------
+
 @app.route("/api/admin-settings", methods=["GET", "PUT", "OPTIONS"])
 def admin_settings():
     if request.method == "OPTIONS":
@@ -766,12 +906,24 @@ def _admin_crud(table_name, allowed_fields, required_on_create):
 
 @app.route("/api/admin-games", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 def admin_games():
-    return _admin_crud("games", ["name", "code", "image_url"], required_on_create=["name", "code"])
+    # fazercards_category_id: the FazerCards topup category for this game (enables
+    # auto ID-check + auto top-up). Get it from GET /topups on the FazerCards API.
+    return _admin_crud(
+        "games",
+        ["name", "code", "image_url", "fazercards_category_id"],
+        required_on_create=["name", "code"],
+    )
 
 
 @app.route("/api/admin-products", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 def admin_products():
-    return _admin_crud("products", ["game_code", "name", "price", "provider_package", "image_url"], required_on_create=["game_code", "name"])
+    # provider_package holds the FazerCards offer_id for this product (from
+    # GET /topups/offers?category_id=<game's fazercards_category_id>).
+    return _admin_crud(
+        "products",
+        ["game_code", "name", "price", "provider_package", "image_url"],
+        required_on_create=["game_code", "name"],
+    )
 
 
 @app.route("/api/admin-banners", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -823,6 +975,7 @@ def admin_transactions():
 # ---------------------------------------------------------------------------
 # CORS (kept permissive like the original functions, in case you split domains)
 # ---------------------------------------------------------------------------
+
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -835,5 +988,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"PVH TOPUP server running on http://0.0.0.0:{port}")
     print(f"  Site : http://localhost:{port}/")
-    print(f"  Admin: http://localhost:{port}/admin  (token = ADMIN_PANEL_TOKEN)")
+    print(f"  Admin: http://localhost:{port}/admin (token = ADMIN_PANEL_TOKEN)")
     app.run(host="0.0.0.0", port=port, debug=False)
