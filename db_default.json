@@ -1,52 +1,373 @@
 {
   "games": [
-    {"id": 1, "name": "Free Fire", "code": "ff", "image_url": ""},
-    {"id": 2, "name": "Mobile Legends", "code": "ml", "image_url": ""},
-    {"id": 3, "name": "PUBG Mobile", "code": "pubg", "image_url": ""},
-    {"id": 4, "name": "Roblox", "code": "rbx", "image_url": ""}
+    {
+      "id": 1,
+      "name": "Free Fire",
+      "code": "ff",
+      "image_url": ""
+    },
+    {
+      "id": 2,
+      "name": "Mobile Legends",
+      "code": "ml",
+      "image_url": ""
+    },
+    {
+      "id": 3,
+      "name": "PUBG Mobile",
+      "code": "pubg",
+      "image_url": ""
+    },
+    {
+      "id": 4,
+      "name": "Roblox",
+      "code": "rbx",
+      "image_url": ""
+    }
   ],
   "products": [
-    {"id": 1, "game_code": "ff", "name": "25 Diamonds", "price": 0.3, "provider_package": "FF_25_DIAMOND", "image_url": ""},
-    {"id": 2, "game_code": "ff", "name": "50 Diamonds", "price": 0, "provider_package": "FF_50_DIAMOND", "image_url": ""},
-    {"id": 3, "game_code": "ff", "name": "115 Diamonds", "price": 0, "provider_package": "FF_115_DIAMOND", "image_url": ""},
-    {"id": 4, "game_code": "ff", "name": "240 Diamonds", "price": 0, "provider_package": "FF_240_DIAMOND", "image_url": ""},
-    {"id": 5, "game_code": "ff", "name": "355 Diamonds", "price": 0, "provider_package": "FF_355_DIAMOND", "image_url": ""},
-    {"id": 6, "game_code": "ff", "name": "480 Diamonds", "price": 0, "provider_package": "FF_480_DIAMOND", "image_url": ""},
-    {"id": 7, "game_code": "ff", "name": "610 Diamonds", "price": 0, "provider_package": "FF_610_DIAMOND", "image_url": ""},
-    {"id": 8, "game_code": "ff", "name": "850 Diamonds", "price": 0, "provider_package": "FF_850_DIAMOND", "image_url": ""},
-    {"id": 9, "game_code": "ff", "name": "1090 Diamonds", "price": 0, "provider_package": "FF_1090_DIAMOND", "image_url": ""},
-    {"id": 10, "game_code": "ff", "name": "2180 Diamonds", "price": 0, "provider_package": "FF_2180_DIAMOND", "image_url": ""},
-    {"id": 11, "game_code": "ff", "name": "Weekly Membership", "price": 0, "provider_package": "FF_WEEKLY", "image_url": ""},
-    {"id": 12, "game_code": "ff", "name": "Monthly Membership", "price": 0, "provider_package": "FF_MONTHLY", "image_url": ""},
-
-    {"id": 13, "game_code": "ml", "name": "11 Diamonds", "price": 0, "provider_package": "ML_11_DIAMOND", "image_url": ""},
-    {"id": 14, "game_code": "ml", "name": "22 Diamonds", "price": 0, "provider_package": "ML_22_DIAMOND", "image_url": ""},
-    {"id": 15, "game_code": "ml", "name": "56 Diamonds", "price": 0, "provider_package": "ML_56_DIAMOND", "image_url": ""},
-    {"id": 16, "game_code": "ml", "name": "112 Diamonds", "price": 0, "provider_package": "ML_112_DIAMOND", "image_url": ""},
-    {"id": 17, "game_code": "ml", "name": "223 Diamonds", "price": 0, "provider_package": "ML_223_DIAMOND", "image_url": ""},
-    {"id": 18, "game_code": "ml", "name": "336 Diamonds", "price": 0, "provider_package": "ML_336_DIAMOND", "image_url": ""},
-    {"id": 19, "game_code": "ml", "name": "570 Diamonds", "price": 0, "provider_package": "ML_570_DIAMOND", "image_url": ""},
-    {"id": 20, "game_code": "ml", "name": "1163 Diamonds", "price": 0, "provider_package": "ML_1163_DIAMOND", "image_url": ""},
-    {"id": 21, "game_code": "ml", "name": "Weekly Diamond Pass", "price": 0, "provider_package": "ML_WEEKLY_PASS", "image_url": ""},
-    {"id": 22, "game_code": "ml", "name": "Twilight Pass", "price": 0, "provider_package": "ML_TWILIGHT_PASS", "image_url": ""},
-
-    {"id": 23, "game_code": "pubg", "name": "60 UC", "price": 0, "provider_package": "PUBG_60_UC", "image_url": ""},
-    {"id": 24, "game_code": "pubg", "name": "180 UC", "price": 0, "provider_package": "PUBG_180_UC", "image_url": ""},
-    {"id": 25, "game_code": "pubg", "name": "325 UC", "price": 0, "provider_package": "PUBG_325_UC", "image_url": ""},
-    {"id": 26, "game_code": "pubg", "name": "385 UC", "price": 0, "provider_package": "PUBG_385_UC", "image_url": ""},
-    {"id": 27, "game_code": "pubg", "name": "660 UC", "price": 0, "provider_package": "PUBG_660_UC", "image_url": ""},
-    {"id": 28, "game_code": "pubg", "name": "720 UC", "price": 0, "provider_package": "PUBG_720_UC", "image_url": ""},
-    {"id": 29, "game_code": "pubg", "name": "1800 UC", "price": 0, "provider_package": "PUBG_1800_UC", "image_url": ""},
-    {"id": 30, "game_code": "pubg", "name": "3850 UC", "price": 0, "provider_package": "PUBG_3850_UC", "image_url": ""},
-    {"id": 31, "game_code": "pubg", "name": "8100 UC", "price": 0, "provider_package": "PUBG_8100_UC", "image_url": ""},
-    {"id": 32, "game_code": "pubg", "name": "Weekly Pass", "price": 0, "provider_package": "PUBG_WEEKLY_PASS", "image_url": ""},
-
-    {"id": 33, "game_code": "rbx", "name": "80 Robux", "price": 0, "provider_package": "RBX_80", "image_url": ""},
-    {"id": 34, "game_code": "rbx", "name": "400 Robux", "price": 0, "provider_package": "RBX_400", "image_url": ""},
-    {"id": 35, "game_code": "rbx", "name": "800 Robux", "price": 0, "provider_package": "RBX_800", "image_url": ""},
-    {"id": 36, "game_code": "rbx", "name": "1700 Robux", "price": 0, "provider_package": "RBX_1700", "image_url": ""},
-    {"id": 37, "game_code": "rbx", "name": "4500 Robux", "price": 0, "provider_package": "RBX_4500", "image_url": ""},
-    {"id": 38, "game_code": "rbx", "name": "10000 Robux", "price": 0, "provider_package": "RBX_10000", "image_url": ""}
+    {
+      "id": 1,
+      "game_code": "ff",
+      "name": "25 Diamonds",
+      "price": 0.3,
+      "provider_package": "FF_25_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 2,
+      "game_code": "ff",
+      "name": "50 Diamonds",
+      "price": 0,
+      "provider_package": "FF_50_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 3,
+      "game_code": "ff",
+      "name": "115 Diamonds",
+      "price": 0,
+      "provider_package": "FF_115_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 4,
+      "game_code": "ff",
+      "name": "240 Diamonds",
+      "price": 0,
+      "provider_package": "FF_240_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 5,
+      "game_code": "ff",
+      "name": "355 Diamonds",
+      "price": 0,
+      "provider_package": "FF_355_DIAMOND",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 6,
+      "game_code": "ff",
+      "name": "480 Diamonds",
+      "price": 0,
+      "provider_package": "FF_480_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 7,
+      "game_code": "ff",
+      "name": "610 Diamonds",
+      "price": 0,
+      "provider_package": "FF_610_DIAMOND",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 8,
+      "game_code": "ff",
+      "name": "850 Diamonds",
+      "price": 0,
+      "provider_package": "FF_850_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 9,
+      "game_code": "ff",
+      "name": "1090 Diamonds",
+      "price": 0,
+      "provider_package": "FF_1090_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 10,
+      "game_code": "ff",
+      "name": "2180 Diamonds",
+      "price": 0,
+      "provider_package": "FF_2180_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 11,
+      "game_code": "ff",
+      "name": "Weekly Membership",
+      "price": 0,
+      "provider_package": "FF_WEEKLY",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 12,
+      "game_code": "ff",
+      "name": "Monthly Membership",
+      "price": 0,
+      "provider_package": "FF_MONTHLY",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 13,
+      "game_code": "ml",
+      "name": "11 Diamonds",
+      "price": 0,
+      "provider_package": "ML_11_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 14,
+      "game_code": "ml",
+      "name": "22 Diamonds",
+      "price": 0,
+      "provider_package": "ML_22_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 15,
+      "game_code": "ml",
+      "name": "56 Diamonds",
+      "price": 0,
+      "provider_package": "ML_56_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 16,
+      "game_code": "ml",
+      "name": "112 Diamonds",
+      "price": 0,
+      "provider_package": "ML_112_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 17,
+      "game_code": "ml",
+      "name": "223 Diamonds",
+      "price": 0,
+      "provider_package": "ML_223_DIAMOND",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 18,
+      "game_code": "ml",
+      "name": "336 Diamonds",
+      "price": 0,
+      "provider_package": "ML_336_DIAMOND",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 19,
+      "game_code": "ml",
+      "name": "570 Diamonds",
+      "price": 0,
+      "provider_package": "ML_570_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 20,
+      "game_code": "ml",
+      "name": "1163 Diamonds",
+      "price": 0,
+      "provider_package": "ML_1163_DIAMOND",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 21,
+      "game_code": "ml",
+      "name": "Weekly Diamond Pass",
+      "price": 0,
+      "provider_package": "ML_WEEKLY_PASS",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 22,
+      "game_code": "ml",
+      "name": "Twilight Pass",
+      "price": 0,
+      "provider_package": "ML_TWILIGHT_PASS",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 23,
+      "game_code": "pubg",
+      "name": "60 UC",
+      "price": 0,
+      "provider_package": "PUBG_60_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 24,
+      "game_code": "pubg",
+      "name": "180 UC",
+      "price": 0,
+      "provider_package": "PUBG_180_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 25,
+      "game_code": "pubg",
+      "name": "325 UC",
+      "price": 0,
+      "provider_package": "PUBG_325_UC",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 26,
+      "game_code": "pubg",
+      "name": "385 UC",
+      "price": 0,
+      "provider_package": "PUBG_385_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 27,
+      "game_code": "pubg",
+      "name": "660 UC",
+      "price": 0,
+      "provider_package": "PUBG_660_UC",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 28,
+      "game_code": "pubg",
+      "name": "720 UC",
+      "price": 0,
+      "provider_package": "PUBG_720_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 29,
+      "game_code": "pubg",
+      "name": "1800 UC",
+      "price": 0,
+      "provider_package": "PUBG_1800_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 30,
+      "game_code": "pubg",
+      "name": "3850 UC",
+      "price": 0,
+      "provider_package": "PUBG_3850_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 31,
+      "game_code": "pubg",
+      "name": "8100 UC",
+      "price": 0,
+      "provider_package": "PUBG_8100_UC",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 32,
+      "game_code": "pubg",
+      "name": "Weekly Pass",
+      "price": 0,
+      "provider_package": "PUBG_WEEKLY_PASS",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 33,
+      "game_code": "rbx",
+      "name": "80 Robux",
+      "price": 0,
+      "provider_package": "RBX_80",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 34,
+      "game_code": "rbx",
+      "name": "400 Robux",
+      "price": 0,
+      "provider_package": "RBX_400",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 35,
+      "game_code": "rbx",
+      "name": "800 Robux",
+      "price": 0,
+      "provider_package": "RBX_800",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 36,
+      "game_code": "rbx",
+      "name": "1700 Robux",
+      "price": 0,
+      "provider_package": "RBX_1700",
+      "image_url": "",
+      "section": "recommend"
+    },
+    {
+      "id": 37,
+      "game_code": "rbx",
+      "name": "4500 Robux",
+      "price": 0,
+      "provider_package": "RBX_4500",
+      "image_url": "",
+      "section": "normal"
+    },
+    {
+      "id": 38,
+      "game_code": "rbx",
+      "name": "10000 Robux",
+      "price": 0,
+      "provider_package": "RBX_10000",
+      "image_url": "",
+      "section": "normal"
+    }
   ],
   "banners": [],
   "transactions": [],
@@ -62,5 +383,9 @@
     "footer_desc": "",
     "copyright": "© 2026 PVH TOPUP. All rights reserved."
   },
-  "next_ids": {"games": 5, "products": 39, "banners": 1}
-}
+  "next_ids": {
+    "games": 5,
+    "products": 39,
+    "banners": 1
+  }
+    }
