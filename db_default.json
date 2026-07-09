@@ -1,1 +1,201 @@
-
+{
+  "games": [
+    {
+      "id": 1,
+      "name": "Free Fire",
+      "code": "ff",
+      "image_url": "",
+      "has_server_id": false,
+      "fazercards_category_id": "free_fire_my_sg"
+    },
+    {
+      "id": 2,
+      "name": "Mobile Legends",
+      "code": "ml",
+      "image_url": "",
+      "has_server_id": true,
+      "fazercards_category_id": "mobile_legends_global"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "game_code": "ff",
+      "name": "25 Diamonds",
+      "price": 0.27,
+      "provider_package": "25_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 2,
+      "game_code": "ff",
+      "name": "100 Diamonds",
+      "price": 0.79,
+      "provider_package": "100_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 3,
+      "game_code": "ff",
+      "name": "310 Diamonds",
+      "price": 2.7,
+      "provider_package": "310_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 4,
+      "game_code": "ff",
+      "name": "520 Diamonds",
+      "price": 3.85,
+      "provider_package": "520_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 5,
+      "game_code": "ff",
+      "name": "1060 Diamonds",
+      "price": 7.5,
+      "provider_package": "1060_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 6,
+      "game_code": "ff",
+      "name": "2180 Diamonds",
+      "price": 15.05,
+      "provider_package": "2180_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 7,
+      "game_code": "ff",
+      "name": "5600 Diamonds",
+      "price": 37.1,
+      "provider_package": "5600_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 8,
+      "game_code": "ff",
+      "name": "11500 Diamonds",
+      "price": 76.3,
+      "provider_package": "11500_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 9,
+      "game_code": "ff",
+      "name": "Weekly Membership",
+      "price": 1.55,
+      "provider_package": "weekly_membership",
+      "section": "normal"
+    },
+    {
+      "id": 10,
+      "game_code": "ff",
+      "name": "Monthly Membership",
+      "price": 7.5,
+      "provider_package": "monthly_membership",
+      "section": "normal"
+    },
+    {
+      "id": 11,
+      "game_code": "ml",
+      "name": "12 Diamonds",
+      "price": 0.25,
+      "provider_package": "12_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 12,
+      "game_code": "ml",
+      "name": "28 Diamonds",
+      "price": 0.5,
+      "provider_package": "28_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 13,
+      "game_code": "ml",
+      "name": "70 Diamonds",
+      "price": 1.25,
+      "provider_package": "70_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 14,
+      "game_code": "ml",
+      "name": "140 Diamonds",
+      "price": 2.4,
+      "provider_package": "140_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 15,
+      "game_code": "ml",
+      "name": "240 Diamonds",
+      "price": 3.7,
+      "provider_package": "240_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 16,
+      "game_code": "ml",
+      "name": "355 Diamonds",
+      "price": 5.9,
+      "provider_package": "355_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 17,
+      "game_code": "ml",
+      "name": "716 Diamonds",
+      "price": 11.65,
+      "provider_package": "716_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 18,
+      "game_code": "ml",
+      "name": "1446 Diamonds",
+      "price": 23.1,
+      "provider_package": "1446_diamonds",
+      "section": "normal"
+    },
+    {
+      "id": 19,
+      "game_code": "ml",
+      "name": "Weekly Pass",
+      "price": 1.55,
+      "provider_package": "weekly_pass",
+      "section": "normal"
+    },
+    {
+      "id": 20,
+      "game_code": "ml",
+      "name": "Twilight Pass",
+      "price": 7.85,
+      "provider_package": "twilight_pass",
+      "section": "normal"
+    }
+  ],
+  "banners": [],
+  "transactions": [],
+  "site_settings": {
+    "id": 1,
+    "site_name": "PVH TOPUP",
+    "footer_name": "PVH TOPUP",
+    "logo_url": "https://iili.io/ClpaW67.jpg",
+    "admin_telegram_link": "https://t.me/pvh_top_up",
+    "admin_telegram_name": "@pvh_top_up",
+    "facebook_link": "https://t.me/pvh_top_up",
+    "tiktok_link": "https://t.me/pvh_top_up",
+    "footer_desc": "",
+    "copyright": "© 2026 PVH TOPUP. All rights reserved."
+  },
+  "next_ids": {
+    "games": 3,
+    "products": 21,
+    "banners": 1
+  }
+    }
