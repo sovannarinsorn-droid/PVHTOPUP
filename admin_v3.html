@@ -403,8 +403,15 @@ async function handleImgUpload(event, uid) {
 
 function readRow(tr) {
   const out = {};
-  tr.querySelectorAll("input[data-f]").forEach(i => (out[i.dataset.f] = i.value));
+  tr.querySelectorAll("input[data-f], select[data-f]").forEach(i => (out[i.dataset.f] = i.value));
   return out;
+}
+function sectionSelect(value) {
+  const v = value === "recommend" ? "recommend" : "normal";
+  return `<select data-f="section">
+    <option value="normal" ${v === "normal" ? "selected" : ""}>Normal</option>
+    <option value="recommend" ${v === "recommend" ? "selected" : ""}>⭐ Recommend</option>
+  </select>`;
 }
 
 // ---------- GAMES ----------
@@ -534,7 +541,7 @@ async function loadProducts() {
     document.getElementById("productsStats").innerHTML = `
       <div class="stat-chip"><div class="n">${products.length}</div><div class="l">Products shown</div></div>
       <div class="stat-chip"><div class="n">${avgTxt}</div><div class="l">Avg margin</div></div>`;
-    wrap.innerHTML = !products.length ? emptyState("💠", 'មិនទាន់មាន product ទេ — ចុច "+ បន្ថែម Product ថ្មី" ខាងលើ') : `<table><thead><tr><th>Image</th><th>Game code</th><th>Name</th><th>Cost ($)</th><th>Price ($)</th><th>Margin</th><th>FazerCards Offer ID</th><th></th></tr></thead>
+    wrap.innerHTML = !products.length ? emptyState("💠", 'មិនទាន់មាន product ទេ — ចុច "+ បន្ថែម Product ថ្មី" ខាងលើ') : `<table><thead><tr><th>Image</th><th>Game code</th><th>Name</th><th>Cost ($)</th><th>Price ($)</th><th>Margin</th><th>FazerCards Offer ID</th><th>Section</th><th></th></tr></thead>
       <tbody>${products.map(p => `
         <tr data-id="${p.id}">
           <td data-label="Image">${imageField("image_url", p.image_url)}</td>
@@ -544,6 +551,7 @@ async function loadProducts() {
           <td data-label="Price"><input value="${p.price ?? ""}" data-f="price" oninput="updateMarginCell(this.closest('tr'))"></td>
           <td data-label="Margin" class="margin-cell">${marginBadge(p.cost_usd, p.price)}</td>
           <td data-label="Offer ID"><input value="${esc(p.provider_package || "")}" data-f="provider_package" placeholder="offer_60uc"></td>
+          <td data-label="Section">${sectionSelect(p.section)}</td>
           <td class="actions">
             <button class="btn small ghost" onclick="saveProduct(${p.id})">Save</button>
             <button class="btn small danger" onclick="deleteProduct(${p.id})">Delete</button>
@@ -565,6 +573,7 @@ function addProductRow() {
     <td data-label="Price"><input placeholder="0.90" data-f="price" oninput="updateMarginCell(this.closest('tr'))"></td>
     <td data-label="Margin" class="margin-cell">${marginBadge("", "")}</td>
     <td data-label="Offer ID"><input placeholder="offer_60uc" data-f="provider_package"></td>
+    <td data-label="Section">${sectionSelect("normal")}</td>
     <td class="actions"><button class="btn small" onclick="createProduct(this)">Create</button></td>`;
   table.prepend(tr);
 }

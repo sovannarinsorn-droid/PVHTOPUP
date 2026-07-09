@@ -811,6 +811,11 @@ def get_topup_data():
                 p["price"] = float(p["price"])
             except (TypeError, ValueError):
                 p["price"] = 0
+        # Defensive: frontend hides any product whose "section" isn't exactly
+        # "recommend" or "normal" — old rows (added before this field existed)
+        # would otherwise vanish from the site even though they're in the DB.
+        if p.get("section") not in ("recommend", "normal"):
+            p["section"] = "normal"
 
     payload = encrypt_payload({"game": game, "products": products})
     return json_response({"success": True, "payload": payload})
@@ -942,6 +947,12 @@ def _coerce_fields(table_name, row):
                 row[f] = float(row[f])
             except (TypeError, ValueError):
                 pass
+    # Frontend only renders products whose "section" is exactly "recommend" or
+    # "normal" (anything else, including missing/blank, is silently invisible).
+    # Default every product to "normal" unless the admin explicitly picked "recommend".
+    if table_name == "products":
+        if row.get("section") not in ("recommend", "normal"):
+            row["section"] = "normal"
 
 
 def _admin_crud(table_name, allowed_fields, required_on_create):
@@ -1033,7 +1044,7 @@ def admin_products():
     # shown to customers.
     return _admin_crud(
         "products",
-        ["game_code", "name", "price", "cost_usd", "provider_package", "image_url"],
+        ["game_code", "name", "price", "cost_usd", "provider_package", "image_url", "section"],
         required_on_create=["game_code", "name"],
     )
 
