@@ -623,7 +623,12 @@ async function loadBanners() {
 function addBannerRow() {
   const wrap = document.getElementById("bannersTableWrap");
   let table = wrap.querySelector("tbody");
-  if (!table) { renderBanners(); return; }
+  if (!table) {
+    // No banners yet — the wrap only has the empty-state message and no <table> to
+    // attach a row to. Build the table shell first, then fall through to add the row.
+    wrap.innerHTML = `<table><thead><tr><th>Image</th><th>Link</th><th></th></tr></thead><tbody></tbody></table>`;
+    table = wrap.querySelector("tbody");
+  }
   const tr = document.createElement("tr");
   tr.className = "new-row";
   tr.innerHTML = `<td data-label="Image">${imageField("image_url", "")}</td>
