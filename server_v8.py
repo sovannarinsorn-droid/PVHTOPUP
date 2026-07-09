@@ -1051,7 +1051,10 @@ def admin_products():
 
 @app.route("/api/admin-banners", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 def admin_banners():
-    return _admin_crud("banners", ["image_url", "link"], required_on_create=["image_url"])
+    # 'type' MUST be "main_slider" or "small_promo" — the frontend filters banners by
+    # this field to decide where to render them (see u.banners.filter(S=>S.type===...)
+    # in the site bundle). A banner with no/wrong type is silently invisible on the site.
+    return _admin_crud("banners", ["image_url", "link", "type"], required_on_create=["image_url", "type"])
 
 
 @app.route("/api/admin-transactions", methods=["GET", "PATCH", "OPTIONS"])
