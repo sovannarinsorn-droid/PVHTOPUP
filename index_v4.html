@@ -23,6 +23,15 @@ as frosted glass panels floating over the sky gradient rather than solid dark ca
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>PVH TOPUP</title>
+<meta name="description" content="Game top-up Free Fire, Mobile Legends — ទូទាត់ KHQR លឿន សុវត្ថិភាព ដឹកជញ្ជូនស្វ័យប្រវត្តិ">
+<meta property="og:title" content="PVH TOPUP">
+<meta property="og:description" content="Game top-up Free Fire, Mobile Legends — ទូទាត់ KHQR លឿន សុវត្ថិភាព">
+<meta property="og:image" content="/icon-512.png">
+<meta property="og:type" content="website">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#0096C7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -132,6 +141,11 @@ button{font-family:inherit; cursor:pointer; border:none;}
 .id-status.ok{color:var(--success);}
 .id-status.err{color:var(--danger);}
 .id-status.checking{color:var(--muted);}
+.empty-products{grid-column:1/-1; text-align:center; padding:30px 16px; color:var(--muted); font-size:13.5px; display:flex; flex-direction:column; align-items:center; gap:8px;}
+.recent-ids{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+.id-chip{display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px; background:var(--glass-strong);
+  border:1px solid var(--glass-border); color:var(--text); font-size:12px; font-weight:600;}
+.id-chip svg{width:12px; height:12px;}
 
 .product-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px 18px;}
 .product-card{
@@ -180,6 +194,16 @@ button{font-family:inherit; cursor:pointer; border:none;}
 .pay-status.success{background:rgba(42,157,143,.14); color:var(--success);}
 .pay-status.processing{background:rgba(242,169,59,.14); color:var(--gold);}
 .pay-status.failed{background:rgba(255,107,107,.12); color:var(--danger);}
+
+.receipt{margin-top:14px; background:var(--glass); border:1px solid var(--glass-border); border-radius:12px; padding:14px 16px; backdrop-filter:blur(10px);}
+.receipt-row{display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:13px; border-bottom:1px dashed rgba(11,58,91,.12);}
+.receipt-row:last-child{border-bottom:none;}
+.receipt-row .l{color:var(--muted);}
+.receipt-row .v{font-family:'JetBrains Mono',monospace; font-weight:600; text-align:right;}
+.receipt-total{display:flex; justify-content:space-between; margin-top:8px; padding-top:10px; border-top:1px solid var(--glass-border); font-weight:700;}
+.receipt-total .v{font-family:'JetBrains Mono',monospace; color:var(--gold); font-size:16px;}
+.copy-receipt-btn{width:100%; margin-top:12px; padding:11px; border-radius:10px; background:var(--gem); color:#fff; font-weight:600; font-size:13.5px; display:flex; align-items:center; justify-content:center; gap:6px;}
+.copy-receipt-btn.copied{background:var(--success);}
 .sheet .close-btn{width:100%; margin-top:16px; padding:12px; background:var(--glass-strong); color:var(--muted); border-radius:10px; font-weight:600; box-shadow:0 3px 10px rgba(11,58,91,.10), inset 0 1px 0 rgba(255,255,255,.5);}
 
 /* ---------- footer ---------- */
@@ -245,6 +269,7 @@ let state = {
   settings: null,
   activeGame: null,
   products: [],
+  productsLoading: false,
   selectedProduct: null,
   playerId: "",
   zoneId: "",
@@ -268,6 +293,7 @@ const ICONS = {
   clock: `<span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>`,
   diamond: `<span class="icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 9l3.2-5h9.6L20 9l-8 11z"/></svg></span>`,
   chevronRight: `<span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span>`,
+  history: `<span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/><polyline points="12 8 12 12 15.5 14"/></svg></span>`,
 };
 
 // ---- helpers ----
@@ -298,6 +324,29 @@ function decryptPayload(payloadB64){
   return JSON.parse(text);
 }
 
+// ---- recent Player IDs (localStorage, per game — pure convenience, no server round-trip) ----
+const RECENT_IDS_KEY = "pvh_recent_ids_v1";
+function loadRecentIds(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_IDS_KEY) || "{}"); }catch(e){ return {}; }
+}
+function saveRecentId(gameCode, playerId, zoneId, name){
+  if(!playerId) return;
+  const all = loadRecentIds();
+  const list = (all[gameCode] || []).filter(e => e.playerId !== playerId);
+  list.unshift({ playerId, zoneId: zoneId || "", name: name || "", ts: Date.now() });
+  all[gameCode] = list.slice(0, 3);
+  try{ localStorage.setItem(RECENT_IDS_KEY, JSON.stringify(all)); }catch(e){}
+}
+function getRecentIds(gameCode){
+  return (loadRecentIds()[gameCode] || []);
+}
+function lastUsedPlayerIdAnyGame(){
+  const all = loadRecentIds();
+  let best = null;
+  Object.values(all).forEach(list => (list||[]).forEach(e => { if(!best || e.ts > best.ts) best = e; }));
+  return best;
+}
+
 // ---- data loading ----
 async function loadSiteSettings(){
   const r = await api("get-site-settings");
@@ -318,13 +367,17 @@ async function openGame(game){
   state.activeGame = game;
   state.view = "game";
   state.products = [];
+  state.productsLoading = true;
   state.selectedProduct = null;
-  state.playerId = "";
-  state.zoneId = "";
-  state.idCheck = null;
+  const recent = getRecentIds(game.code);
+  const last = recent[0];
+  state.playerId = last ? last.playerId : "";
+  state.zoneId = last ? last.zoneId : "";
+  state.idCheck = last ? {ok:true, name:last.name} : null;
   render();
   const r = await api("get-topup-data?id=" + encodeURIComponent(game.code));
-  if(!r.success){ toast("មិនអាចផ្ទុក package បានទេ", true); return; }
+  state.productsLoading = false;
+  if(!r.success){ toast("មិនអាចផ្ទុក package បានទេ", true); render(); return; }
   const payload = decryptPayload(r.payload);
   state.products = payload.products || [];
   render();
@@ -355,6 +408,7 @@ async function checkId(){
   }});
   if(r.success && r.name){
     state.idCheck = {ok:true, name:r.name};
+    saveRecentId(state.activeGame.code, state.playerId, state.zoneId, r.name);
   } else if(r.success && r.name === null){
     state.idCheck = null; // auto-check unavailable server-side, don't block checkout
   } else {
@@ -373,6 +427,61 @@ function renderIdStatus(){
 }
 
 // ---- product selection ----
+function useRecentId(playerId, zoneId, name){
+  vibrate(8);
+  state.playerId = playerId;
+  state.zoneId = zoneId || "";
+  state.idCheck = {ok:true, name: name || ""};
+  render();
+}
+
+// ---- My Orders (order history lookup by player ID) ----
+function openMyOrders(){
+  vibrate(8);
+  const root = document.createElement("div");
+  root.className = "sheet-backdrop";
+  root.id = "ordersSheet";
+  const prefill = lastUsedPlayerIdAnyGame();
+  root.innerHTML = `
+    <div class="sheet">
+      <h3>ការបញ្ជាទិញរបស់ខ្ញុំ</h3>
+      <div class="sub">វាយ Player ID ដើម្បីមើលប្រវត្តិទិញ</div>
+      <div class="id-row">
+        <div class="id-field">
+          <span class="field-icon">${ICONS.user}</span>
+          <input type="text" inputmode="numeric" id="ordersSearchInput" placeholder="Player ID" value="${esc(prefill ? prefill.playerId : "")}">
+        </div>
+        <button class="btn-primary" style="padding:11px 18px" onclick="__app.searchMyOrders()">ស្វែងរក</button>
+      </div>
+      <div id="ordersResult"></div>
+      <button class="close-btn" onclick="__app.closeMyOrders()">បិទ</button>
+    </div>`;
+  document.body.appendChild(root);
+  if(prefill) searchMyOrders();
+}
+function closeMyOrders(){
+  const el = $("#ordersSheet");
+  if(el) el.remove();
+}
+async function searchMyOrders(){
+  const input = $("#ordersSearchInput");
+  const userId = input ? input.value.trim() : "";
+  const resultEl = $("#ordersResult");
+  if(!userId){ toast("សូមវាយ Player ID", true); return; }
+  resultEl.innerHTML = `<div class="skeleton" style="height:60px;border-radius:10px;margin-top:12px;"></div>`;
+  const r = await api("my-orders?userId=" + encodeURIComponent(userId));
+  if(!r.success){ resultEl.innerHTML = `<div class="empty-products">${ICONS.cross} មិនអាចផ្ទុកបានទេ</div>`; return; }
+  if(!r.orders.length){ resultEl.innerHTML = `<div class="empty-products">${ICONS.image} មិនទាន់មានការបញ្ជាទិញសម្រាប់ ID នេះទេ</div>`; return; }
+  resultEl.innerHTML = r.orders.map(o => `
+    <div class="receipt" style="margin-top:12px">
+      <div class="receipt-row"><span class="l">Trx ID</span><span class="v">${esc(o.trx_id)}</span></div>
+      <div class="receipt-row"><span class="l">ថ្ងៃ</span><span class="v">${esc(fmtDateTime(o.paid_at || o.created_at))}</span></div>
+      <div class="receipt-row"><span class="l">ហ្គេម / Package</span><span class="v">${esc(o.game_name)} / ${esc(o.product_name)}</span></div>
+      <div class="receipt-row"><span class="l">ស្ថានភាព</span><span class="v">${o.status === "paid" ? esc(deliveryStatusLabel(o.delivery_status)) : "មិនទាន់បង់ប្រាក់"}</span></div>
+      <div class="receipt-total"><span>តម្លៃ</span><span class="v">$${Number(o.amount).toFixed(2)}</span></div>
+    </div>`).join("");
+}
+
 function selectProduct(id){
   vibrate(8);
   state.selectedProduct = state.products.find(p => p.id === id) || null;
@@ -451,7 +560,7 @@ function openPaymentSheet(trxId, qrData, amount){
       clearInterval(pollPayTimer);
       clearInterval(countdownTimer);
       const ds = (r.data && r.data.delivery_status) || null;
-      handleDeliveryStatus(trxId, ds);
+      handleDeliveryStatus(trxId, ds, r.data || null);
     } else if(r.expired){
       clearInterval(pollPayTimer);
       clearInterval(countdownTimer);
@@ -467,7 +576,64 @@ function setPayStatus(kind, html){
   el.innerHTML = html;
 }
 
-function handleDeliveryStatus(trxId, ds){
+function fmtDateTime(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return "—";
+  const pad = n => String(n).padStart(2,"0");
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function deliveryStatusLabel(ds){
+  if(ds === "delivered") return "✓ បានបញ្ជូនស្វ័យប្រវត្តិ";
+  if(ds === "processing") return "កំពុងបញ្ជូន";
+  if(ds === "failed") return "បញ្ជូនមិនកើត — ត្រូវការ manual";
+  return "រង់ចាំ admin បញ្ជូន";
+}
+function receiptText(order, trxId){
+  const g = state.activeGame, p = state.selectedProduct;
+  return [
+    `វិក័យប័ត្រ PVH TOPUP`,
+    `Trx ID: ${trxId}`,
+    `ថ្ងៃ: ${fmtDateTime(order.paid_at || order.created_at)}`,
+    `ហ្គេម: ${g ? g.name : order.game_code}`,
+    `Package: ${p ? p.name : ""}`,
+    `Player ID: ${order.user_id}${order.zone_id ? " ("+order.zone_id+")" : ""}`,
+    `តម្លៃ: $${Number(order.amount).toFixed(2)}`,
+    `ស្ថានភាព: ${deliveryStatusLabel(order.delivery_status)}`,
+  ].join("\n");
+}
+function renderReceipt(order, trxId){
+  const sheetEl = $("#paySheet .sheet");
+  if(!sheetEl) return;
+  const g = state.activeGame, p = state.selectedProduct;
+  const old = $("#receiptBlock");
+  if(old) old.remove();
+  const block = document.createElement("div");
+  block.className = "receipt";
+  block.id = "receiptBlock";
+  block.innerHTML = `
+    <div class="receipt-row"><span class="l">Trx ID</span><span class="v">${esc(trxId)}</span></div>
+    <div class="receipt-row"><span class="l">ថ្ងៃ</span><span class="v">${esc(fmtDateTime(order.paid_at || order.created_at))}</span></div>
+    <div class="receipt-row"><span class="l">ហ្គេម</span><span class="v">${esc(g ? g.name : order.game_code)}</span></div>
+    <div class="receipt-row"><span class="l">Package</span><span class="v">${esc(p ? p.name : "")}</span></div>
+    <div class="receipt-row"><span class="l">Player ID</span><span class="v">${esc(order.user_id)}${order.zone_id ? " ("+esc(order.zone_id)+")" : ""}</span></div>
+    <div class="receipt-row"><span class="l">ស្ថានភាព</span><span class="v">${esc(deliveryStatusLabel(order.delivery_status))}</span></div>
+    <div class="receipt-total"><span>សរុប</span><span class="v">$${Number(order.amount).toFixed(2)}</span></div>
+    <button class="copy-receipt-btn" id="copyReceiptBtn">${ICONS.chat} ចម្លងវិក័យប័ត្រ</button>
+  `;
+  sheetEl.insertBefore(block, $("#closeSheetBtn"));
+  $("#copyReceiptBtn").onclick = async () => {
+    const btn = $("#copyReceiptBtn");
+    try{
+      await navigator.clipboard.writeText(receiptText(order, trxId));
+      btn.classList.add("copied");
+      btn.innerHTML = `${ICONS.check} បានចម្លង!`;
+      setTimeout(()=>{ btn.classList.remove("copied"); btn.innerHTML = `${ICONS.chat} ចម្លងវិក័យប័ត្រ`; }, 2000);
+    }catch(e){ toast("មិនអាចចម្លងបានទេ", true); }
+  };
+}
+
+function handleDeliveryStatus(trxId, ds, order){
   if(ds === "delivered"){
     setPayStatus("success", ICONS.check + " ទូទាត់ជោគជ័យ — ទទួល Diamond ដោយស្វ័យប្រវត្តិ!");
   } else if(ds === "processing"){
@@ -477,9 +643,11 @@ function handleDeliveryStatus(trxId, ds){
       if(r.delivery_status === "delivered"){
         clearInterval(pollTopupTimer);
         setPayStatus("success", ICONS.check + " ទូទាត់ជោគជ័យ — ទទួល Diamond ដោយស្វ័យប្រវត្តិ!");
+        if(order){ order.delivery_status = "delivered"; renderReceipt(order, trxId); }
       } else if(r.delivery_status === "failed"){
         clearInterval(pollTopupTimer);
         setPayStatus("failed", "ទូទាត់ជោគជ័យ ប៉ុន្តែបញ្ជូនស្វ័យប្រវត្តិមិនកើត — ទាក់ទង admin ខាងក្រោម");
+        if(order){ order.delivery_status = "failed"; renderReceipt(order, trxId); }
       }
     }, 4000);
   } else if(ds === "failed"){
@@ -487,6 +655,7 @@ function handleDeliveryStatus(trxId, ds){
   } else {
     setPayStatus("success", ICONS.check + " ទូទាត់ជោគជ័យ — admin នឹងបញ្ជូនជូនក្នុងពេលឆាប់ៗ");
   }
+  if(order) renderReceipt(order, trxId);
 }
 
 function closePaymentSheet(trxId, userClosed){
@@ -546,6 +715,7 @@ function renderTopbarAndFooter(){
       ${s.LOGO_URL ? `<img class="logo" src="${esc(s.LOGO_URL)}" alt="logo">` : ""}
       <div class="sitename">${esc(s.SITE_NAME || "PVH TOPUP")}</div>
       <div class="spacer"></div>
+      <button class="contact-btn" onclick="__app.openMyOrders()">${ICONS.history} ការបញ្ជាទិញ</button>
       ${s.ADMIN_TELEGRAM_LINK ? `<a class="contact-btn" href="${esc(s.ADMIN_TELEGRAM_LINK)}" target="_blank">${ICONS.chat} ជំនួយ</a>` : ""}
     `;
   }
@@ -602,7 +772,9 @@ function renderHome(){
 function renderGame(){
   const g = state.activeGame;
   const needsZone = !!g.has_server_id;
-  const productsHtml = state.products.length ? state.products.map(p => `
+  const productsHtml = state.productsLoading
+    ? `<div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div>`
+    : (state.products.length ? state.products.map(p => `
     <div class="product-card facet ${state.selectedProduct && state.selectedProduct.id===p.id ? 'selected':''}" onclick="__app.selectProduct(${p.id})">
       ${p.section==='recommend' ? `<span class="badge">${ICONS.star} ពេញនិយម</span>` : ""}
       <div class="pmedia">
@@ -610,7 +782,13 @@ function renderGame(){
       </div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">$${Number(p.price).toFixed(2)}</div>
-    </div>`).join("") : `<div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div><div class="skeleton" style="height:140px;border-radius:12px;"></div>`;
+    </div>`).join("") : `<div class="empty-products">${ICONS.image} មិនទាន់មាន package សម្រាប់ហ្គេមនេះទេ — សូមទាក់ទង admin</div>`);
+
+  const recent = getRecentIds(g.code).filter(e => e.playerId !== state.playerId);
+  const chipsHtml = recent.length ? `
+    <div class="recent-ids">
+      ${recent.map(e => `<button class="id-chip" onclick="__app.useRecentId('${esc(e.playerId)}','${esc(e.zoneId)}','${esc(e.name)}')">${ICONS.user} ${esc(e.name || e.playerId)}</button>`).join("")}
+    </div>` : "";
 
   return `
     <div class="detail-header">
@@ -632,6 +810,7 @@ function renderGame(){
         </div>` : ""}
       </div>
       <div class="id-status" id="idStatus"></div>
+      ${chipsHtml}
     </div>
     <div class="section"><h2>ជ្រើសរើស Package</h2></div>
     <div class="product-grid">${productsHtml}</div>
@@ -659,7 +838,7 @@ function render(){
 
 // expose the handful of functions used by inline onclick/oninput in rendered HTML
 window.__app = { openGame: (id)=>{ const g = state.games.find(x=>x.id===id); if(g) openGame(g); },
-  goHome, selectProduct, onIdInput, buyNow };
+  goHome, selectProduct, onIdInput, buyNow, useRecentId, openMyOrders, closeMyOrders, searchMyOrders };
 
 // ---- boot ----
 render();

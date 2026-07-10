@@ -566,6 +566,21 @@ def serve_upload(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
 
+@app.route("/manifest.json")
+def serve_manifest():
+    return send_from_directory(STATIC_DIR, "manifest.json")
+
+
+@app.route("/icon-192.png")
+def serve_icon_192():
+    return send_from_directory(STATIC_DIR, "icon-192.png")
+
+
+@app.route("/icon-512.png")
+def serve_icon_512():
+    return send_from_directory(STATIC_DIR, "icon-512.png")
+
+
 @app.route("/api/admin-upload", methods=["POST", "OPTIONS"])
 @limiter.limit("20 per minute")
 def admin_upload():
@@ -995,6 +1010,45 @@ def get_stats():
     ]
     payload = encrypt_payload(slim)
     return json_response({"success": True, "type": stat_type, "payload": payload})
+
+
+@app.route("/api/my-orders", methods=["GET", "OPTIONS"])
+@limiter.limit("20 per minute")
+def my_orders():
+    if request.method == "OPTIONS":
+        return json_response({})
+
+    user_id = (request.args.get("userId") or "").strip()
+    if not user_id:
+        return json_response({"success": False, "error": "Missing userId"}, 400)
+
+    data = db_read()
+    products_by_id = {p["id"]: p for p in data["products"]}
+    games_by_code = {g["code"]: g for g in data["games"]}
+
+    # Player ID is the only identifier this site has (no login system) — same trust
+    # model as /api/check-user. Anyone who knows a player ID can see its order
+    # history, same as anyone who knows it can already validate/target it for a
+    # top-up. Rate-limited above so it can't be used to bulk-scrape all IDs.
+    matches = [t for t in data["transactions"] if str(t.get("user_id")) == user_id]
+    matches.sort(key=lambda t: t.get("created_at") or "", reverse=True)
+    matches = matches[:20]
+
+    orders = []
+    for t in matches:
+        product = products_by_id.get(t.get("product_id"))
+        game = games_by_code.get(t.get("game_code"))
+        orders.append({
+            "trx_id": t.get("trx_id"),
+            "game_name": (game or {}).get("name") or t.get("game_code"),
+            "product_name": (product or {}).get("name") or "",
+            "amount": t.get("amount"),
+            "status": t.get("status"),
+            "delivery_status": t.get("delivery_status"),
+            "created_at": t.get("created_at"),
+            "paid_at": t.get("paid_at"),
+        })
+    return json_response({"success": True, "orders": orders})
 
 
 @app.route("/api/get-site-settings", methods=["GET", "OPTIONS"])
