@@ -930,7 +930,15 @@ def get_topup_data():
         if p.get("section") not in ("recommend", "normal"):
             p["section"] = "normal"
 
-    payload = encrypt_payload({"game": game, "products": products})
+    # Public-safe view only: cost_usd (wholesale cost, used for margin math in the
+    # admin panel) and provider_package (the FazerCards offer_id) must never reach
+    # the browser — the frontend's AES key/passphrase is public, so anything put
+    # in this payload is effectively readable by anyone, not just "hidden" by
+    # decryption. Whitelist exactly what the storefront needs to render a card.
+    PUBLIC_PRODUCT_FIELDS = ("id", "game_code", "name", "price", "image_url", "section")
+    public_products = [{f: p.get(f) for f in PUBLIC_PRODUCT_FIELDS} for p in products]
+
+    payload = encrypt_payload({"game": game, "products": public_products})
     return json_response({"success": True, "payload": payload})
 
 
