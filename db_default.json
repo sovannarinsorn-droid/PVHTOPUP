@@ -15,6 +15,31 @@
       "image_url": "",
       "has_server_id": true,
       "fazercards_category_id": "mobile_legends_global"
+    },
+    {
+      "id": 3,
+      "name": "Telegram Stars",
+      "code": "telegram_stars",
+      "image_url": "",
+      "has_server_id": false,
+      "fulfillment_type": "telegram_stars"
+    },
+    {
+      "id": 4,
+      "name": "Telegram Premium",
+      "code": "telegram_premium",
+      "image_url": "",
+      "has_server_id": false,
+      "fulfillment_type": "telegram_premium"
+    },
+    {
+      "id": 5,
+      "name": "Roblox",
+      "code": "roblox",
+      "image_url": "",
+      "has_server_id": false,
+      "fulfillment_type": "giftcard",
+      "fazercards_category_id": "roblox_global"
     }
   ],
   "products": [
@@ -177,6 +202,116 @@
       "price": 7.85,
       "provider_package": "twilight_pass",
       "section": "normal"
+    },
+    {
+      "id": 21,
+      "game_code": "telegram_stars",
+      "name": "50 Stars",
+      "price": 1.2,
+      "provider_package": "50",
+      "section": "normal"
+    },
+    {
+      "id": 22,
+      "game_code": "telegram_stars",
+      "name": "100 Stars",
+      "price": 2.3,
+      "provider_package": "100",
+      "section": "recommend"
+    },
+    {
+      "id": 23,
+      "game_code": "telegram_stars",
+      "name": "500 Stars",
+      "price": 11.0,
+      "provider_package": "500",
+      "section": "normal"
+    },
+    {
+      "id": 24,
+      "game_code": "telegram_stars",
+      "name": "1000 Stars",
+      "price": 21.5,
+      "provider_package": "1000",
+      "section": "normal"
+    },
+    {
+      "id": 25,
+      "game_code": "telegram_premium",
+      "name": "Premium 3 ខែ",
+      "price": 9.5,
+      "provider_package": "3",
+      "section": "normal"
+    },
+    {
+      "id": 26,
+      "game_code": "telegram_premium",
+      "name": "Premium 6 ខែ",
+      "price": 17.0,
+      "provider_package": "6",
+      "section": "recommend"
+    },
+    {
+      "id": 27,
+      "game_code": "telegram_premium",
+      "name": "Premium 12 ខែ",
+      "price": 30.0,
+      "provider_package": "12",
+      "section": "normal"
+    },
+    {
+      "id": 28,
+      "game_code": "roblox",
+      "name": "200 Robux",
+      "price": 4.3,
+      "cost_usd": 3.55,
+      "provider_package": "200_robux",
+      "section": "normal"
+    },
+    {
+      "id": 29,
+      "game_code": "roblox",
+      "name": "800 Robux",
+      "price": 10.5,
+      "cost_usd": 8.77,
+      "provider_package": "800_robux",
+      "section": "normal"
+    },
+    {
+      "id": 30,
+      "game_code": "roblox",
+      "name": "1000 Robux",
+      "price": 13.4,
+      "cost_usd": 11.17,
+      "provider_package": "1000_robux",
+      "section": "recommend"
+    },
+    {
+      "id": 31,
+      "game_code": "roblox",
+      "name": "2000 Robux",
+      "price": 25.9,
+      "cost_usd": 21.58,
+      "provider_package": "2000_robux",
+      "section": "normal"
+    },
+    {
+      "id": 32,
+      "game_code": "roblox",
+      "name": "4500 Robux",
+      "price": 56.7,
+      "cost_usd": 47.26,
+      "provider_package": "4500_robux",
+      "section": "normal"
+    },
+    {
+      "id": 33,
+      "game_code": "roblox",
+      "name": "10000 Robux",
+      "price": 117.5,
+      "cost_usd": 97.92,
+      "provider_package": "10000_robux",
+      "section": "normal"
     }
   ],
   "banners": [],
@@ -194,8 +329,8 @@
     "copyright": "© 2026 PVH TOPUP. All rights reserved."
   },
   "next_ids": {
-    "games": 3,
-    "products": 21,
+    "games": 6,
+    "products": 34,
     "banners": 1
   }
-    }
+}
