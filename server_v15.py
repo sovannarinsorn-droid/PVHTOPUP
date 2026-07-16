@@ -1243,6 +1243,45 @@ def admin_settings():
     return json_response({"success": True, "settings": row})
 
 
+@app.route("/api/admin-test-notify", methods=["POST", "OPTIONS"])
+def admin_test_notify():
+    """Sends a real Telegram test message and reports the actual result back to the
+    admin panel, instead of failing silently like notify_admin() does elsewhere.
+    Use this to verify TELEGRAM_BOT_TOKEN / ADMIN_CHAT_ID are configured correctly
+    without waiting for a real payment or new-user event."""
+    if request.method == "OPTIONS":
+        return json_response({})
+    auth_err = require_admin()
+    if auth_err:
+        return auth_err
+
+    if not TELEGRAM_BOT_TOKEN:
+        return json_response({"success": False, "error": "TELEGRAM_BOT_TOKEN មិនទាន់បានកំណត់ក្នុង environment variables"}, 400)
+    if not ADMIN_CHAT_ID:
+        return json_response({"success": False, "error": "ADMIN_CHAT_ID មិនទាន់បានកំណត់ក្នុង environment variables"}, 400)
+
+    try:
+        res = requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={
+                "chat_id": ADMIN_CHAT_ID,
+                "text": "✅ *TEST NOTIFICATION*\nប្រព័ន្ធ Telegram notification របស់ PVH TOPUP ដំណើរការត្រឹមត្រូវ!",
+                "parse_mode": "Markdown",
+            },
+            timeout=10,
+        )
+        data = res.json()
+    except requests.RequestException as e:
+        return json_response({"success": False, "error": "Network error: " + str(e)}, 502)
+
+    if not data.get("ok"):
+        # Telegram's own error text - e.g. "Unauthorized" (bad token),
+        # "chat not found" (bad ADMIN_CHAT_ID), or "bot was blocked by the user".
+        return json_response({"success": False, "error": data.get("description", "Telegram API returned an unknown error")}, 400)
+
+    return json_response({"success": True, "message": "សារបានផ្ញើដោយជោគជ័យ — ពិនិត្យ Telegram robot របស់អ្នក"})
+
+
 NUMERIC_FIELDS = {"products": {"price", "cost_usd"}}
 
 

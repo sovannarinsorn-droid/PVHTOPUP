@@ -784,6 +784,12 @@ async function renderSettings() {
           <input id="s_copyright" value="${esc(s.copyright || "")}" placeholder="© 2026 PVH TOPUP. All rights reserved.">
         </div>
         <button class="btn" style="width:auto;padding:12px 26px" onclick="saveSettings()">💾 Save Settings</button>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1)">
+          <label>🔔 Telegram Notifications</label>
+          <p class="sub" style="margin:4px 0 12px">តេស្តថាតើ TELEGRAM_BOT_TOKEN និង ADMIN_CHAT_ID ត្រូវបានកំណត់ត្រឹមត្រូវឬអត់ — ចុចប៊ូតុងខាងក្រោមដើម្បីផ្ញើសារតេស្ត</p>
+          <button class="btn" id="testNotifyBtn" style="width:auto;padding:12px 26px" onclick="testNotify()">📨 Test Notification</button>
+        </div>
       </div>`;
   } catch (err) {
     document.getElementById("settingsWrap").innerHTML = emptyState("⚠️", esc(err.message));
@@ -808,6 +814,21 @@ async function saveSettings() {
   } catch (err) {
     toast(err.message, "err");
   }
+}
+
+async function testNotify() {
+  const btn = document.getElementById("testNotifyBtn");
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "⏳ កំពុងផ្ញើ...";
+  try {
+    const data = await api("admin-test-notify", { method: "POST" });
+    toast(data.message || "សារបានផ្ញើដោយជោគជ័យ");
+  } catch (err) {
+    toast(err.message, "err");
+  }
+  btn.disabled = false;
+  btn.textContent = original;
 }
 
 // Auto-login if a token is already saved
